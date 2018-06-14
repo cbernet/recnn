@@ -1,5 +1,5 @@
 import autograd.numpy as np
-from autograd.util import flatten_func
+from autograd.misc.flatten import flatten_func
 from sklearn.utils import check_random_state
 
 
