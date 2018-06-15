@@ -18,6 +18,14 @@ def load_from_pickle(filename, n_jets):
     return jets
 
 
+import multiprocessing as mp
+def multithreadmap(f,X,ncores=20):
+	p=mp.Pool(ncores)
+	Xout = p.map(f,X)
+	p.terminate()
+	return(Xout)
+
+
 # Jet related
 
 def _pt(v):
