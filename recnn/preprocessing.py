@@ -135,7 +135,7 @@ def randomize(jet):
     leaves = np.where(jet["tree"][:, 0] == -1)[0]
     nodes = [n for n in leaves]
     content = [jet["content"][n] for n in nodes]
-    nodes = [i for i in range(len(nodes))]
+    nodes = range(len(nodes))
     tree = [[-1, -1] for n in nodes]
     pool = [n for n in nodes]
     next_id = len(nodes)
