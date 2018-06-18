@@ -13,6 +13,9 @@ from sklearn.utils import check_random_state
 from recnn.preprocessing import rewrite_content
 from recnn.preprocessing import permute_by_pt
 from recnn.preprocessing import extract
+from recnn.preprocessing import multithreadmap
+
+
 from recnn.recnn import log_loss
 from recnn.recnn import adam
 from recnn.recnn import grnn_init_simple
@@ -83,7 +86,7 @@ def train(filename_train,
 
     # Preprocessing
     logging.info("Preprocessing...")
-    X = [extract(permute_by_pt(rewrite_content(jet))) for jet in X]
+    X = multithreadmap(extract,multithreadmap(permute_by_pt,multithreadmap(rewrite_content,X)))
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
     for jet in X:
