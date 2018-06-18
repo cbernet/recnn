@@ -29,11 +29,11 @@ def multithreadmap(f,X,ncores=20):
 
 
 #now useless
-#def extract_first_element(jet):
-#	"""
-#	extract first element of the jet : its components.
-#	"""
-#	return(jet[0])
+def extract_first_element(jet):
+	"""
+	extract first element of the jet : its components.
+	"""
+	return(jet[0])
 
 
 def find_first_non_particle(jet):
@@ -65,15 +65,18 @@ def select_particle_features(jet):
 if len(sys.argv)>1:
 	input_file = sys.argv[1]
 else :
-	input_file = '/data/yohann/QCD_Pt170to300_dataformat.npy'
+	input_file = '/data/yohann/data_recnn/HiggsSUSYGG160_dataformat.npy'
 
 #load data
 jets_array = np.load(input_file)
 
 #process
-#jets_array = multithreadmap(extract_first_element, jets_array)
+jets_array = multithreadmap(extract_first_element, jets_array)
+
 
 indexes = multithreadmap(find_first_non_particle, jets_array)
+
+jets_array = list(jets_array)
 
 for i in range(len(jets_array)):
 	jets_array[i] = jets_array[i][:indexes[i]]
