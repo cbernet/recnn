@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import pickle
-
+from functools import partial
 
 # Data loading related
 
@@ -19,12 +19,15 @@ def load_from_pickle(filename, n_jets):
 
 
 import multiprocessing as mp
-def multithreadmap(f,X,ncores=20):
+def multithreadmap(f,X,ncores=20, **kwargs):
+	"""
+	multithreading map of a function, default on 20 cpu cores.
+	"""
+        func = partial(f, **kwargs)
 	p=mp.Pool(ncores)
-	Xout = p.map(f,X)
+	Xout = p.map(func,X)
 	p.terminate()
 	return(Xout)
-
 
 # Jet related
 

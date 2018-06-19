@@ -18,19 +18,10 @@ import os
 import multiprocessing as mp
 from ROOT import TFile, TLorentzVector
 from root_numpy import tree2array
+from recnn.preprocessing import multithreadmap
 from functools import partial
 
 
-
-def multithreadmap(f,X,ncores=20, **kwargs):
-	"""
-	multithreading map of a function, default on 20 cpu cores.
-	"""
-        func = partial(f, **kwargs)
-	p=mp.Pool(ncores)
-	Xout = p.map(func,X)
-	p.terminate()
-	return(Xout)
 
 
 #now useless
