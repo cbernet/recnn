@@ -23,7 +23,7 @@ void _traverse_rec(PseudoJet root, int parent_id, bool is_left,
     content.push_back(root.py());
     content.push_back(root.pz());
     content.push_back(root.e());
-    content.push_back(root.user_index());  // remove this for jet studies
+    //content.push_back(root.user_index());  // remove this for jet studies
 
     if (root.has_pieces()) {
         vector<PseudoJet> pieces = root.pieces();
