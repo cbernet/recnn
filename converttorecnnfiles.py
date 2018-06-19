@@ -25,8 +25,9 @@ def multithreadmap(f,X,ncores=20, **kwargs):
 	"""
 	multithreading map of a function, default on 20 cpu cores.
 	"""
+        func = partial(f, **kwargs)
 	p=mp.Pool(ncores)
-	Xout = p.map(f,X)
+	Xout = p.map(func,X)
 	p.terminate()
 	return(Xout)
 
@@ -81,10 +82,10 @@ def converttorecnnfiles(input_file, addID=False):
         for i in range(len(jets_array)):
 	        jets_array[i] = jets_array[i][:indexes[i]]
                 
-        select_particle_features_ID = partial(select_particle_features, addID=addID)
-        jets_array = multithreadmap(select_particle_features_ID,jets_array)
+        jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
 
-        np.save(input_file[:input_file.find('.')]+'_processed_for_recnn',jets_array)
+        np.save(input_file[:input_file.find('.')],
+                jets_array)
 
 
 
