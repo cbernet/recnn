@@ -14,8 +14,9 @@ output format :
 
 import numpy as np
 import sys
+import os
 import multiprocessing as mp
-from ROOT import TFile
+from ROOT import TFile, TLorentzVector
 from root_numpy import tree2array
 from functools import partial
 
@@ -68,11 +69,25 @@ def select_particle_features(jet, addID=False):
                 return(jet[:,[3,0,1,2]])
 
 
-def converttorecnnfiles(input_file, addID=False):
+def etatrimtree(tree):
+        newtree = tree.CloneTree(0)
+        for event in tree:
+                vect = TLorentzVector()
+                vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
+                if vect.Eta()<2.6:
+                        newtree.Fill()
+        return newtree
+        
+def converttorecnnfiles(input_file, addID=False, etacut=True):
         #load data
         f = TFile(input_file)
         tree = f.Get('tree')
+        if etacut:
+                tmpfile = TFile('tmp.root','recreate')
+                tree = etatrimtree(tree)
         jets_array = tree2array(tree,'ptcs')
+        if etacut:
+                os.remove('tmp.root')
         
         #process
         indexes = multithreadmap(find_first_non_particle, jets_array)
@@ -95,6 +110,7 @@ if __name__ == '__main__':
         parser.add_argument("rootfile", help="path to the ROOTfile to be converted",type=str)
         # parser.add_argument("--branchlist", help="list of branches to keep", nargs='+') # for now respect naming scheme used to produce trees
         parser.add_argument("--addID", help="wether or not to add the pdgID in the output", action="store_true")
+        # parser.add_argument("--cut", help="what cut to apply to the rootfile events e.g. ",type=str)
         args = parser.parse_args()
         
         converttorecnnfiles(args.rootfile, addID=args.addID)
