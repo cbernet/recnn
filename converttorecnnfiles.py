@@ -14,16 +14,21 @@ output format :
 
 import numpy as np
 import sys
+import os
 import multiprocessing as mp
+from ROOT import TFile, TLorentzVector
+from root_numpy import tree2array
+from functools import partial
 
 
 
-def multithreadmap(f,X,ncores=20):
+def multithreadmap(f,X,ncores=20, **kwargs):
 	"""
 	multithreading map of a function, default on 20 cpu cores.
 	"""
+        func = partial(f, **kwargs)
 	p=mp.Pool(ncores)
-	Xout = p.map(f,X)
+	Xout = p.map(func,X)
 	p.terminate()
 	return(Xout)
 
@@ -54,36 +59,58 @@ def find_first_non_particle(jet):
 			last = m-1
 	return(m)
 
-def select_particle_features(jet):
+def select_particle_features(jet, addID=False):
 	"""
 	select E,px,py,pz of the particle.
 	"""
-	return(jet[:,[3,0,1,2,0]])
+        if addID:
+	        return(jet[:,[3,0,1,2,0]])
+        else:
+                return(jet[:,[3,0,1,2]])
 
 
-#Load file
-if len(sys.argv)>1:
-	input_file = sys.argv[1]
-else :
-	input_file = '/data/yohann/data_recnn/HiggsSUSYGG160_dataformat.npy'
+def etatrimtree(tree):
+        newtree = tree.CloneTree(0)
+        for event in tree:
+                vect = TLorentzVector()
+                vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
+                if vect.Eta()<2.6:
+                        newtree.Fill()
+        return newtree
+        
+def converttorecnnfiles(input_file, addID=False, etacut=True):
+        #load data
+        f = TFile(input_file)
+        tree = f.Get('tree')
+        if etacut:
+                tmpfile = TFile('tmp.root','recreate')
+                tree = etatrimtree(tree)
+        jets_array = tree2array(tree,'ptcs')
+        if etacut:
+                os.remove('tmp.root')
+        
+        #process
+        indexes = multithreadmap(find_first_non_particle, jets_array)
+        
+        jets_array = list(jets_array)
+        
+        for i in range(len(jets_array)):
+	        jets_array[i] = jets_array[i][:indexes[i]]
+                
+        jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
 
-#load data
-jets_array = np.load(input_file)
-
-#process
-jets_array = multithreadmap(extract_first_element, jets_array)
-
-
-indexes = multithreadmap(find_first_non_particle, jets_array)
-
-jets_array = list(jets_array)
-
-for i in range(len(jets_array)):
-	jets_array[i] = jets_array[i][:indexes[i]]
-
-
-jets_array = multithreadmap(select_particle_features,jets_array)
+        np.save(input_file[:input_file.find('.')],
+                jets_array)
 
 
 
-np.save(input_file[:-4]+'_processed_for_recnn',jets_array)
+if __name__ == '__main__':
+        import argparse
+        parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks.')
+        parser.add_argument("rootfile", help="path to the ROOTfile to be converted",type=str)
+        # parser.add_argument("--branchlist", help="list of branches to keep", nargs='+') # for now respect naming scheme used to produce trees
+        parser.add_argument("--addID", help="wether or not to add the pdgID in the output", action="store_true")
+        # parser.add_argument("--cut", help="what cut to apply to the rootfile events e.g. ",type=str)
+        args = parser.parse_args()
+        
+        converttorecnnfiles(args.rootfile, addID=args.addID)
