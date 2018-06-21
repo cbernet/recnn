@@ -60,13 +60,29 @@ def select_particle_features(jet, addID=False):
                 return(jet[:,[3,0,1,2]])
 
 
-def etatrimtree(tree):
+def etatrimtree(tree, isSignal=False):
         newtree = tree.CloneTree(0)
+        i=0
         for event in tree:
                 vect = TLorentzVector()
                 vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
-                if vect.Eta()<2.6:
-                        newtree.Fill()
+                if abs(vect.Eta())>2.3 or vect.Pt()<20.:
+                        continue
+                is_Signal = (event.dRs[0] < 0.3 and event.dRs[0]!=0.)
+                if isSignal:
+                        if not is_Signal:
+                                continue
+                        vect.SetPxPyPzE(event.GenTau[0],event.GenTau[1],event.GenTau[2],event.GenTau[3])
+                        if abs(vect.Eta())>2.3:# or vect.Pt()<20 or vect.Pt()>100:
+                                continue
+                else:
+                        if is_Signal:
+                                continue
+                        vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                        if abs(vect.Eta())>2.3:# or vect.Pt()<20 or vect.Pt()>100:
+                                continue
+                newtree.Fill()
+                i+=1
         return newtree
         
 def converttorecnnfiles(input_file, addID=False, etacut=True):
