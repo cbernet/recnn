@@ -84,10 +84,10 @@ def ff(e):
 # In[89]:
 
 
-events = np.array(np.load(basepath+'/QCD_Pt80to120_ext2_dataformat_processed_for_recnn.npy'))
+events = np.array(np.load(basepath+'/QCD_Pt80to120_ext2_dataformat.npy'))
 background = multithreadmap(ff,events)
 
-events = np.array(np.load(basepath+'/HiggsSUSYGG160_dataformat_processed_for_recnn.npy'))
+events = np.array(np.load(basepath+'/HiggsSUSYGG160_dataformat.npy'))
 signal = multithreadmap(ff,events)
 
 
@@ -98,7 +98,7 @@ signal = multithreadmap(ff,events)
 # In[90]:
 
 
-X = np.array(background[:100000])
+X = np.array(signal[:100000])
 y = np.array([1]*100000)
 
 
@@ -238,6 +238,10 @@ length = len(X)//2
 #Save all versions of the dataset
 
 #anti-kt
+#import pickle
+#fd = open("/data/conda/recnn/data_gilles_louppe/w-vs-qcd/final/antikt-kt-test.pickle", "rb")
+#X, y = pickle.load(fd)
+#fd.close()
 
 Xbis=X
 ybis=y
@@ -311,7 +315,7 @@ plt.show()
 
 a = []
 w=[]
-k=5
+k=4
 for i,j in enumerate([np.array(X_train)[err[k]]]):
     constituents = j["content"][j["tree"][:, 0] == -1]
     if y[i]==1 or True:
