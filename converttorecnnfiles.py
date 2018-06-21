@@ -85,13 +85,13 @@ def etatrimtree(tree, isSignal=False):
                 i+=1
         return newtree
         
-def converttorecnnfiles(input_file, addID=False, etacut=True):
+def converttorecnnfiles(input_file, addID=False, etacut=True, isSignal=False):
         #load data
         f = TFile(input_file)
         tree = f.Get('tree')
         if etacut:
                 tmpfile = TFile('tmp.root','recreate')
-                tree = etatrimtree(tree)
+                tree = etatrimtree(tree, isSignal=isSignal)
         jets_array = tree2array(tree,'ptcs')
         if etacut:
                 os.remove('tmp.root')
@@ -113,11 +113,14 @@ def converttorecnnfiles(input_file, addID=False, etacut=True):
 
 if __name__ == '__main__':
         import argparse
-        parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks.')
+        parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks. \n Usage : \n python converttorecnnfiles.py /data/gtouquet/samples_root/QCD_Pt80to120_ext2_dataformat.root False')
         parser.add_argument("rootfile", help="path to the ROOTfile to be converted",type=str)
+        parser.add_argument("isSignal", help="is it a signal file (hadronic taus) or background file (QCD jets)?",type=bool)
         # parser.add_argument("--branchlist", help="list of branches to keep", nargs='+') # for now respect naming scheme used to produce trees
         parser.add_argument("--addID", help="wether or not to add the pdgID in the output", action="store_true")
         # parser.add_argument("--cut", help="what cut to apply to the rootfile events e.g. ",type=str)
         args = parser.parse_args()
         
-        converttorecnnfiles(args.rootfile, addID=args.addID)
+        converttorecnnfiles(args.rootfile,
+                            addID=args.addID,
+                            isSignal=args.isSignal)
