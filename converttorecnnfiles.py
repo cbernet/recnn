@@ -105,22 +105,51 @@ def converttorecnnfiles(input_file, addID=False, etacut=True, isSignal=False):
 	        jets_array[i] = jets_array[i][:indexes[i]]
                 
         jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
-
-        np.save(input_file[:input_file.find('.')],
+        
+        np.save('data/{}'.format(input_file[input_file.rfind('/')+1:input_file.find('.')]),
                 jets_array)
 
 
 
 if __name__ == '__main__':
         import argparse
-        parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks. \n Usage : \n python converttorecnnfiles.py /data/gtouquet/samples_root/QCD_Pt80to120_ext2_dataformat.root False')
-        parser.add_argument("rootfile", help="path to the ROOTfile to be converted",type=str)
-        parser.add_argument("isSignal", help="is it a signal file (hadronic taus) or background file (QCD jets)?",type=bool)
-        # parser.add_argument("--branchlist", help="list of branches to keep", nargs='+') # for now respect naming scheme used to produce trees
+        parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks. \n Usage : \n python converttorecnnfiles.py /data/gtouquet/samples_root/QCD_Pt80to120_ext2_dataformat.root --isSignal False \n OR \n python converttorecnnfiles.py all')
+        parser.add_argument("rootfile", help="path to the ROOTfile to be converted OR 'all' which converts all usual datasets from gael's directory (for now, maybe put the rootfiles in data/ too?)",type=str)
+        parser.add_argument("--isSignal", help=" if is it a signal file (hadronic taus) or background file (QCD jets)?",type=bool, default=False)
         parser.add_argument("--addID", help="wether or not to add the pdgID in the output", action="store_true")
-        # parser.add_argument("--cut", help="what cut to apply to the rootfile events e.g. ",type=str)
         args = parser.parse_args()
-        
-        converttorecnnfiles(args.rootfile,
+
+        if args.rootfile == 'all':
+                signal_samples = ['HiggsSUSYGG120',
+                                  'HiggsSUSYBB2600',
+                                  'DY1JetsToLL_M50_LO',
+                                  'HiggsSUSYBB3200',
+                                  'HiggsSUSYGG140',
+                                  'HiggsSUSYBB2300',
+                                  'HiggsSUSYGG800',
+                                  'HiggsSUSYGG160']
+                background_samples = ['QCD_Pt15to30',
+                                      'QCD_Pt30to50',
+                                      'QCD_Pt170to300',
+                                      'QCD_Pt80to120',
+                                      'QCD_Pt80to120_ext2',
+                                      'QCD_Pt120to170',
+                                      'QCD_Pt50to80',
+                                      'QCD_Pt170to300_ext',
+                                      'QCD_Pt120to170_ext']
+                for s in signal_samples:
+                        print 'Converting', s
+                        rootfile = '{}{}_dataformat.root'.format('/data/gtouquet/samples_root/',s)
+                        converttorecnnfiles(rootfile,
+                                            addID=args.addID,
+                                            isSignal=True)
+                for s in background_samples:
+                        print 'Converting', s
+                        rootfile = '{}{}_dataformat.root'.format('/data/gtouquet/samples_root/',s)
+                        converttorecnnfiles(rootfile,
+                                            addID=args.addID,
+                                            isSignal=False)
+        else:
+                converttorecnnfiles(args.rootfile,
                             addID=args.addID,
                             isSignal=args.isSignal)
