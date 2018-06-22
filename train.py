@@ -27,6 +27,9 @@ from recnn.recnn import grnn_predict_gated
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s %(levelname)s] %(message)s")
 
+def tftransform(jet,tf) :
+        jet["content"] = tf.transform(jet["content"])
+	return(jet)
 
 @click.command()
 @click.argument("filename_train")
@@ -69,17 +72,20 @@ def train(filename_train,
 
     # Make data
     logging.info("Loading data...")
-
-    fd = open(filename_train, "rb")
-    X, y = pickle.load(fd)
-    fd.close()
-    y = np.array(y)
+    if filename_train[-1]=="e":
+        fd = open(filename_train, "rb")
+        X, y = pickle.load(fd)
+        fd.close()
+    else:
+        X, y = np.load(filename_train)
+    X = np.array(X).astype(dict)
+    y = np.array(y).astype(int)
 
     if n_events_train > 0:
         indices = check_random_state(123).permutation(len(X))[:n_events_train]
-        X = [X[i] for i in indices]
+        X = X[indices]
         y = y[indices]
-
+    X = list(X)
     logging.info("\tfilename = %s" % filename_train)
     logging.info("\tX size = %d" % len(X))
     logging.info("\ty size = %d" % len(y))
@@ -89,8 +95,7 @@ def train(filename_train,
     X = multithreadmap(extract,multithreadmap(permute_by_pt,multithreadmap(rewrite_content,X)))
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
-    for jet in X:
-        jet["content"] = tf.transform(jet["content"])
+    X = multithreadmap(tftransform,X,tf=tf)
 
     # Split into train+validation
     logging.info("Splitting into train and validation...")
