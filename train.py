@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO,
 
 def tftransform(jet,tf) :
         jet["content"] = tf.transform(jet["content"])
-	return(None)
+	return(jet)
 
 @click.command()
 @click.argument("filename_train")
@@ -95,7 +95,7 @@ def train(filename_train,
     X = multithreadmap(extract,multithreadmap(permute_by_pt,multithreadmap(rewrite_content,X)))
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
-    multithreadmap(tftransform,X,tf=tf)
+    X = multithreadmap(tftransform,X,tf=tf)
 
     # Split into train+validation
     logging.info("Splitting into train and validation...")
