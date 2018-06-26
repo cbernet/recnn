@@ -38,7 +38,7 @@ def tftransform(jet,tf) :
 @click.option("--simple", is_flag=True, default=False)
 @click.option("--n_features", default=7)
 @click.option("--n_hidden", default=40)
-@click.option("--n_epochs", default=20)
+@click.option("--n_epochs", default=5)
 @click.option("--batch_size", default=64)
 @click.option("--step_size", default=0.0005)
 @click.option("--decay", default=0.9)
@@ -131,7 +131,7 @@ def train(filename_train,
         return loss(X_train[idx], y_train[idx], params)
 
     def callback(params, iteration, gradient):
-        if iteration % 25 == 0:
+        if iteration % 200 == 0:
             roc_auc = roc_auc_score(y_valid, predict(params, X_valid))
 
             if roc_auc > best_score[0]:

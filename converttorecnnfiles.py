@@ -11,17 +11,14 @@ output format :
 	without fake particles
 """
 
-
-import numpy as np
-import sys
 import os
-import multiprocessing as mp
-from ROOT import TFile, TLorentzVector
+import numpy as np
+from ROOT import TFile, TLorentzVector, TH1F
 from root_numpy import tree2array
 from recnn.preprocessing import multithreadmap
-from functools import partial
 
-
+norm_hist = TH1F('normhist','normhist',150,0.,150.)
+background_norm_hist = TH1F('backgroundnormhist','backgroundnormhist',150,0.,150.)
 
 
 #now useless
@@ -73,14 +70,29 @@ def etatrimtree(tree, isSignal=False):
                         if not is_Signal:
                                 continue
                         vect.SetPxPyPzE(event.GenTau[0],event.GenTau[1],event.GenTau[2],event.GenTau[3])
-                        if abs(vect.Eta())>2.3:# or vect.Pt()<20 or vect.Pt()>100:
+                        if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
+                                continue
+                        vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                        if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
                                 continue
                 else:
                         if is_Signal:
                                 continue
                         vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                        if abs(vect.Eta())>2.3:# or vect.Pt()<20 or vect.Pt()>100:
+                        if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
                                 continue
+                if isSignal:
+                    vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                    norm_hist.Fill(vect.Pt())
+                if not isSignal:
+                    vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                    the_bin = norm_hist.FindBin(vect.Pt())
+                    nsig = norm_hist.GetBinContent(the_bin)
+                    nback = background_norm_hist.GetBinContent(the_bin)
+                    if nback>=nsig:
+                        continue
+                    else:
+                        background_norm_hist.Fill(vect.Pt())
                 newtree.Fill()
                 i+=1
         return newtree
@@ -105,9 +117,11 @@ def converttorecnnfiles(input_file, addID=False, etacut=True, isSignal=False):
 	        jets_array[i] = jets_array[i][:indexes[i]]
                 
         jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
-        
-        np.save('data/{}'.format(input_file[input_file.rfind('/')+1:input_file.find('.')]),
-                jets_array)
+        if input_file=='QCD_Pt120to170_ext':
+            import pdb;pdb.set_trace()
+        return jets_array
+#        np.save('data/{}'.format(input_file[input_file.rfind('/')+1:input_file.find('.')]),
+#                jets_array)
 
 
 
@@ -116,7 +130,7 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks. \n Usage : \n python converttorecnnfiles.py /data/gtouquet/samples_root/QCD_Pt80to120_ext2_dataformat.root --isSignal False \n OR \n python converttorecnnfiles.py all')
         parser.add_argument("rootfile", help="path to the ROOTfile to be converted OR 'all' which converts all usual datasets from gael's directory (for now, maybe put the rootfiles in data/ too?)",type=str)
         parser.add_argument("--isSignal", help=" if is it a signal file (hadronic taus) or background file (QCD jets)?",type=bool, default=False)
-        parser.add_argument("--addID", help="wether or not to add the pdgID in the output", action="store_true")
+        parser.add_argument("--addID", help="whether or not to add the pdgID in the output", action="store_true")
         args = parser.parse_args()
 
         if args.rootfile == 'all':
@@ -137,18 +151,24 @@ if __name__ == '__main__':
                                       'QCD_Pt50to80',
                                       'QCD_Pt170to300_ext',
                                       'QCD_Pt120to170_ext']
+                signals = []
                 for s in signal_samples:
                         print 'Converting', s
                         rootfile = '{}{}_dataformat.root'.format('/data/gtouquet/samples_root/',s)
-                        converttorecnnfiles(rootfile,
-                                            addID=args.addID,
-                                            isSignal=True)
+                        signals.extend(converttorecnnfiles(rootfile,
+                                                           addID=args.addID,
+                                                           isSignal=True))
+                np.save('data/{}'.format('Signal'), signals)
+                backgrounds = []
                 for s in background_samples:
                         print 'Converting', s
                         rootfile = '{}{}_dataformat.root'.format('/data/gtouquet/samples_root/',s)
-                        converttorecnnfiles(rootfile,
-                                            addID=args.addID,
-                                            isSignal=False)
+                        backgrounds.extend(converttorecnnfiles(rootfile,
+                                                               addID=args.addID,
+                                                               isSignal=False))
+                np.save('data/{}'.format('Background'), backgrounds)
+                
+                
         else:
                 converttorecnnfiles(args.rootfile,
                             addID=args.addID,
