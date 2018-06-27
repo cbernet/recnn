@@ -85,6 +85,8 @@ def train(filename_train,
         X, y = np.load(filename_train)
     X = np.array(X).astype(dict)[:100000]
     y = np.array(y).astype(float)[:100000]
+    y_pred_0 = [x["pt"] for x in X]
+    zerovalue=square_error(y, y_pred_0).mean()
 
     if n_events_train > 0:
         indices = check_random_state(123).permutation(len(X))[:n_events_train]
@@ -163,6 +165,7 @@ def train(filename_train,
     for i in range(n_epochs):
         logging.info("epoch = %d" % i)
         logging.info("step_size = %.4f" % step_size)
+        logging.info("zerovalue = %.4f" % zerovalue)
 
         trained_params = adam(ag.grad(objective),
                               trained_params,
