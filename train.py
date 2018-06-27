@@ -151,7 +151,7 @@ def train(filename_train,
                 roc_auc = roc_auc_score(y_valid, predict(params, X_valid))
                 logging.info(
                     "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
-                    "\troc_auc(valid)=%.4f\tbest_roc_auc(valid)=%.4f" % (
+                    "\troc_auc(valid)=%.4f\tbest_loss(valid)=%.4f" % (
                         iteration,
                         loss(X_train[:5000], y_train[:5000], params),
                         loss(X_valid, y_valid, params),
