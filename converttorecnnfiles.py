@@ -11,7 +11,6 @@ output format :
 	without fake particles
 """
 
-import os
 import numpy as np
 from ROOT import TFile, TLorentzVector, TH1F
 from root_numpy import tree2array
@@ -57,10 +56,20 @@ def select_particle_features(jet, addID=False):
                 return(jet[:,[3,0,1,2]])
 
 
-def etatrimtree(tree, isSignal=False):
+def etatrimtree(tree, isSignal=False, JEC=False):
         newtree = tree.CloneTree(0)
+        if JEC:
+            testtree = tree.CloneTree(0)
+            genpt = np.zeros(1)
+            testtree.Branch('genpt', genpt, 'genpt/D')
+            newtree.Branch('genpt', genpt, 'genpt/D')
         i=0
+        j=0
+        nentries = tree.GetEntries()
         for event in tree:
+                j+=1
+                if j%10000==0:
+                    print 'entry', j, '/', nentries
                 vect = TLorentzVector()
                 vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
                 if abs(vect.Eta())>2.3 or vect.Pt()<20.:
@@ -81,10 +90,10 @@ def etatrimtree(tree, isSignal=False):
                         vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
                         if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
                                 continue
-                if isSignal:
+                if isSignal and not JEC:
                     vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
                     norm_hist.Fill(vect.Pt())
-                if not isSignal:
+                if not isSignal and not JEC:
                     vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
                     the_bin = norm_hist.FindBin(vect.Pt())
                     nsig = norm_hist.GetBinContent(the_bin)
@@ -93,21 +102,34 @@ def etatrimtree(tree, isSignal=False):
                         continue
                     else:
                         background_norm_hist.Fill(vect.Pt())
-                newtree.Fill()
+                if JEC:
+                    vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                    genpt[0] = vect.Pt()
+                    if i%2==0:
+                        testtree.Fill()
+                    else:
+                        newtree.Fill()
+                else:
+                    newtree.Fill()
                 i+=1
-        return newtree
+        if JEC:
+            newtree.SetName('traintree')
+            testtree.SetName('testtree')
+            newtree.Write()
+            testtree.Write()
+            return newtree, testtree
+        else:
+            tree.Write()
+            return newtree, None
         
-def converttorecnnfiles(input_file, addID=False, etacut=True, isSignal=False):
+def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False):
         #load data
-        f = TFile(input_file)
-        tree = f.Get('tree')
-        if etacut:
-                tmpfile = TFile('tmp.root','recreate')
-                tree = etatrimtree(tree, isSignal=isSignal)
-        jets_array = tree2array(tree,'ptcs')
-        if etacut:
-                os.remove('tmp.root')
-        
+        tree, testtree = etatrimtree(tree, isSignal=isSignal, JEC=JEC)
+        if JEC:
+            jets_array = tree2array(tree,'ptcs')
+            genpt_array = tree2array(tree,'genpt')
+        else:
+            jets_array = tree2array(tree,'ptcs')
         #process
         indexes = multithreadmap(find_first_non_particle, jets_array)
         
@@ -117,59 +139,54 @@ def converttorecnnfiles(input_file, addID=False, etacut=True, isSignal=False):
 	        jets_array[i] = jets_array[i][:indexes[i]]
                 
         jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
-        if input_file=='QCD_Pt120to170_ext':
-            import pdb;pdb.set_trace()
+        
+        if JEC:
+            genpt_array = list(genpt_array)
+            jets_array = zip(jets_array, genpt_array)
+        
         return jets_array
-#        np.save('data/{}'.format(input_file[input_file.rfind('/')+1:input_file.find('.')]),
-#                jets_array)
-
 
 
 if __name__ == '__main__':
         import argparse
         parser = argparse.ArgumentParser(description='Convert Dataformated ROOTfiles to numpy files usable in the notebooks. \n Usage : \n python converttorecnnfiles.py /data/gtouquet/samples_root/QCD_Pt80to120_ext2_dataformat.root --isSignal False \n OR \n python converttorecnnfiles.py all')
-        parser.add_argument("rootfile", help="path to the ROOTfile to be converted OR 'all' which converts all usual datasets from gael's directory (for now, maybe put the rootfiles in data/ too?)",type=str)
-        parser.add_argument("--isSignal", help=" if is it a signal file (hadronic taus) or background file (QCD jets)?",type=bool, default=False)
+        parser.add_argument("--rootfile", help="path to the ROOTfile to be converted OR 'all' which converts all usual datasets from gael's directory (for now, maybe put the rootfiles in data/ too?)",type=str, default='all')
+        parser.add_argument("--isSignal", help=" if is it a signal file (hadronic taus) or background file (QCD jets)?", action="store_true")
         parser.add_argument("--addID", help="whether or not to add the pdgID in the output", action="store_true")
+        parser.add_argument("--JEC", help="to make the files needed for JEC regression", action="store_true")
         args = parser.parse_args()
 
         if args.rootfile == 'all':
-                signal_samples = ['HiggsSUSYGG120',
-                                  'HiggsSUSYBB2600',
-                                  'DY1JetsToLL_M50_LO',
-                                  'HiggsSUSYBB3200',
-                                  'HiggsSUSYGG140',
-                                  'HiggsSUSYBB2300',
-                                  'HiggsSUSYGG800',
-                                  'HiggsSUSYGG160']
-                background_samples = ['QCD_Pt15to30',
-                                      'QCD_Pt30to50',
-                                      'QCD_Pt170to300',
-                                      'QCD_Pt80to120',
-                                      'QCD_Pt80to120_ext2',
-                                      'QCD_Pt120to170',
-                                      'QCD_Pt50to80',
-                                      'QCD_Pt170to300_ext',
-                                      'QCD_Pt120to170_ext']
-                signals = []
-                for s in signal_samples:
-                        print 'Converting', s
-                        rootfile = '{}{}_dataformat.root'.format('/data/gtouquet/samples_root/',s)
-                        signals.extend(converttorecnnfiles(rootfile,
-                                                           addID=args.addID,
-                                                           isSignal=True))
-                np.save('data/{}'.format('Signal'), signals)
-                backgrounds = []
-                for s in background_samples:
-                        print 'Converting', s
-                        rootfile = '{}{}_dataformat.root'.format('/data/gtouquet/samples_root/',s)
-                        backgrounds.extend(converttorecnnfiles(rootfile,
-                                                               addID=args.addID,
-                                                               isSignal=False))
-                np.save('data/{}'.format('Background'), backgrounds)
+                if not args.JEC:
+                    #Signal files
+                    sinputfile = TFile('/data/gtouquet/samples_root/RawSignal.root')
+                    stree = sinputfile.Get('tree')
+                    outROOTfiles = TFile('/data/gtouquet/samples_root/Test_Train_splitted_{}.root'.format('Signal'),'recreate')
+                    signals = converttorecnnfiles(stree,
+                                                  addID=args.addID,
+                                                  isSignal=True,
+                                                  JEC=args.JEC)
+                    outROOTfiles.Write()
+                    outROOTfiles.Close()
+                    np.save('data/{}{}'.format('Signal', 'JEC' if args.JEC else ''), signals)
+                    
+                #Background files
+                binputfile = TFile('/data/gtouquet/samples_root/RawBackground.root')
+                btree = binputfile.Get('tree')
+                outROOTfileb = TFile('/data/gtouquet/samples_root/Test_Train_splitted_{}.root'.format('Background'),'recreate')
+                backgrounds = converttorecnnfiles(btree,
+                                                  addID=args.addID,
+                                                  isSignal=False,
+                                                  JEC=args.JEC)
+                outROOTfileb.Write()
+                outROOTfileb.Close()
+                np.save('data/{}{}'.format('Background', 'JEC' if args.JEC else ''), backgrounds)
                 
                 
         else:
-                converttorecnnfiles(args.rootfile,
-                            addID=args.addID,
-                            isSignal=args.isSignal)
+                inputfile = TFile(args.rootfile)
+                tree = inputfile.Get('tree')
+                converttorecnnfiles(tree,
+                                    addID=args.addID,
+                                    isSignal=args.isSignal,
+                                    JEC=args.JEC)
