@@ -53,25 +53,28 @@ def train(filename_train,
           batch_size=64,
           step_size=0.01,
           decay=0.7,
-          random_state=1):
+          random_state=1,
+          verbose=False):
     # Initialization
     gated = not simple
-    logging.info("Calling with...")
-    logging.info("\tfilename_train = %s" % filename_train)
-    logging.info("\tfilename_model = %s" % filename_model)
-    logging.info("\tn_events_train = %d" % n_events_train)
-    logging.info("\tgated = %s" % gated)
-    logging.info("\tn_features = %d" % n_features)
-    logging.info("\tn_hidden = %d" % n_hidden)
-    logging.info("\tn_epochs = %d" % n_epochs)
-    logging.info("\tbatch_size = %d" % batch_size)
-    logging.info("\tstep_size = %f" % step_size)
-    logging.info("\tdecay = %f" % decay)
-    logging.info("\trandom_state = %d" % random_state)
+    if verbose:
+        logging.info("Calling with...")
+        logging.info("\tfilename_train = %s" % filename_train)
+        logging.info("\tfilename_model = %s" % filename_model)
+        logging.info("\tn_events_train = %d" % n_events_train)
+        logging.info("\tgated = %s" % gated)
+        logging.info("\tn_features = %d" % n_features)
+        logging.info("\tn_hidden = %d" % n_hidden)
+        logging.info("\tn_epochs = %d" % n_epochs)
+        logging.info("\tbatch_size = %d" % batch_size)
+        logging.info("\tstep_size = %f" % step_size)
+        logging.info("\tdecay = %f" % decay)
+        logging.info("\trandom_state = %d" % random_state)
     rng = check_random_state(random_state)
 
     # Make data
-    logging.info("Loading data...")
+    if verbose:
+        logging.info("Loading data...")
     if filename_train[-1]=="e":
         fd = open(filename_train, "rb")
         X, y = pickle.load(fd)
@@ -86,12 +89,14 @@ def train(filename_train,
         X = X[indices]
         y = y[indices]
     X = list(X)
-    logging.info("\tfilename = %s" % filename_train)
-    logging.info("\tX size = %d" % len(X))
-    logging.info("\ty size = %d" % len(y))
+    if verbose:
+        logging.info("\tfilename = %s" % filename_train)
+        logging.info("\tX size = %d" % len(X))
+        logging.info("\ty size = %d" % len(y))
 
     # Preprocessing
-    logging.info("Preprocessing...")
+    if verbose:
+        logging.info("Preprocessing...")
     X = multithreadmap(extract,multithreadmap(permute_by_pt,multithreadmap(rewrite_content,X)))
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
@@ -101,11 +106,12 @@ def train(filename_train,
     logging.info("Splitting into train and validation...")
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y,
-                                                          test_size=5000,
+                                                          test_size=0.1,
                                                           random_state=rng)
 
     # Training
-    logging.info("Training...")
+    if verbose:
+        logging.info("Training...")
 
     if gated:
         predict = grnn_predict_gated
@@ -116,7 +122,7 @@ def train(filename_train,
 
     trained_params = init(n_features, n_hidden, random_state=rng)
     n_batches = int(np.ceil(len(X_train) / batch_size))
-    best_score = [-np.inf]  # yuck, but works
+    best_score = [np.inf]  # yuck, but works
     best_params = [trained_params]
 
     def loss(X, y, params):
@@ -131,29 +137,31 @@ def train(filename_train,
         return loss(X_train[idx], y_train[idx], params)
 
     def callback(params, iteration, gradient):
-        if iteration % 200 == 0:
-            roc_auc = roc_auc_score(y_valid, predict(params, X_valid))
-
-            if roc_auc > best_score[0]:
-                best_score[0] = roc_auc
+        if iteration % 10 == 0:
+            the_loss = loss(X_valid, y_valid, params)
+            if the_loss < best_score[0]:
+                best_score[0] = the_loss
                 best_params[0] = copy.deepcopy(params)
 
                 fd = open(filename_model, "wb")
                 pickle.dump(best_params[0], fd)
                 fd.close()
 
-            logging.info(
-                "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
-                "\troc_auc(valid)=%.4f\tbest_roc_auc(valid)=%.4f" % (
-                    iteration,
-                    loss(X_train[:5000], y_train[:5000], params),
-                    loss(X_valid, y_valid, params),
-                    roc_auc,
-                    best_score[0]))
+            if verbose:
+                roc_auc = roc_auc_score(y_valid, predict(params, X_valid))
+                logging.info(
+                    "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
+                    "\troc_auc(valid)=%.4f\tbest_roc_auc(valid)=%.4f" % (
+                        iteration,
+                        loss(X_train[:5000], y_train[:5000], params),
+                        loss(X_valid, y_valid, params),
+                        roc_auc,
+                        best_score[0]))
 
     for i in range(n_epochs):
-        logging.info("epoch = %d" % i)
-        logging.info("step_size = %.4f" % step_size)
+        if verbose:
+            logging.info("epoch = %d" % i)
+            logging.info("step_size = %.4f" % step_size)
 
         trained_params = adam(ag.grad(objective),
                               trained_params,
