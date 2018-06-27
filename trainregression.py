@@ -41,9 +41,10 @@ def tftransform(jet,tf) :
 @click.option("--n_hidden", default=40)
 @click.option("--n_epochs", default=5)
 @click.option("--batch_size", default=64)
-@click.option("--step_size", default=0.0005)
+@click.option("--step_size", default=0.005)
 @click.option("--decay", default=0.9)
 @click.option("--random_state", default=1)
+@click.option("--verbose", is_flag=True,default=False)
 def train(filename_train,
           filename_model,
           n_events_train=-1,
@@ -54,45 +55,51 @@ def train(filename_train,
           batch_size=64,
           step_size=0.01,
           decay=0.7,
-          random_state=42):
+          random_state=42,
+          verbose=False):
     # Initialization
     gated = not simple
-    logging.info("Calling with...")
-    logging.info("\tfilename_train = %s" % filename_train)
-    logging.info("\tfilename_model = %s" % filename_model)
-    logging.info("\tn_events_train = %d" % n_events_train)
-    logging.info("\tgated = %s" % gated)
-    logging.info("\tn_features = %d" % n_features)
-    logging.info("\tn_hidden = %d" % n_hidden)
-    logging.info("\tn_epochs = %d" % n_epochs)
-    logging.info("\tbatch_size = %d" % batch_size)
-    logging.info("\tstep_size = %f" % step_size)
-    logging.info("\tdecay = %f" % decay)
-    logging.info("\trandom_state = %d" % random_state)
+    if verbose:
+        logging.info("Calling with...")
+        logging.info("\tfilename_train = %s" % filename_train)
+        logging.info("\tfilename_model = %s" % filename_model)
+        logging.info("\tn_events_train = %d" % n_events_train)
+        logging.info("\tgated = %s" % gated)
+        logging.info("\tn_features = %d" % n_features)
+        logging.info("\tn_hidden = %d" % n_hidden)
+        logging.info("\tn_epochs = %d" % n_epochs)
+        logging.info("\tbatch_size = %d" % batch_size)
+        logging.info("\tstep_size = %f" % step_size)
+        logging.info("\tdecay = %f" % decay)
+        logging.info("\trandom_state = %d" % random_state)
     rng = check_random_state(random_state)
 
     # Make data
-    logging.info("Loading data...")
+    if verbose:
+        logging.info("Loading data...")
     if filename_train[-1]=="e":
         fd = open(filename_train, "rb")
         X, y = pickle.load(fd)
         fd.close()
     else:
         X, y = np.load(filename_train)
-    X = np.array(X).astype(dict)
-    y = np.array(y).astype(float)
+    X = np.array(X).astype(dict)[:100000]
+    y = np.array(y).astype(float)[:100000]
 
     if n_events_train > 0:
         indices = check_random_state(123).permutation(len(X))[:n_events_train]
         X = X[indices]
         y = y[indices]
     X = list(X)
-    logging.info("\tfilename = %s" % filename_train)
-    logging.info("\tX size = %d" % len(X))
-    logging.info("\ty size = %d" % len(y))
+    if verbose:
+        logging.info("\tfilename = %s" % filename_train)
+        logging.info("\tX size = %d" % len(X))
+        logging.info("\ty size = %d" % len(y))
 
     # Preprocessing
-    logging.info("Preprocessing...")
+
+    if verbose:
+        logging.info("Preprocessing...")
     X = multithreadmap(extract,multithreadmap(permute_by_pt,multithreadmap(rewrite_content,X)))
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
@@ -106,7 +113,8 @@ def train(filename_train,
                                                           random_state=rng)
 
     # Training
-    logging.info("Training...")
+    if verbose:
+        logging.info("Training...")
 
     if gated:
         predict = grnn_predict_gated
@@ -117,7 +125,7 @@ def train(filename_train,
 
     trained_params = init(n_features, n_hidden, random_state=rng)
     n_batches = int(np.ceil(len(X_train) / batch_size))
-    best_score = [-np.inf]  # yuck, but works
+    best_score = [np.inf]  # yuck, but works
     best_params = [trained_params]
 
     def loss(X, y, params):
@@ -132,25 +140,25 @@ def train(filename_train,
         return loss(X_train[idx], y_train[idx], params)
 
     def callback(params, iteration, gradient):
-        if iteration % 25 == 0:
-            calloss = loss(X_valid, y_valid,params)
-
-            if calloss < best_score[0]:
-                best_score[0] = calloss
+        if iteration % 100 == 0:
+            the_loss = loss(X_valid, y_valid, params)
+            if the_loss < best_score[0]:
+                best_score[0] = the_loss
                 best_params[0] = copy.deepcopy(params)
 
                 fd = open(filename_model, "wb")
                 pickle.dump(best_params[0], fd)
                 fd.close()
 
-            logging.info(
-                "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
-                "\tloss(valid)=%.4f\tbest_loss(valid)=%.4f" % (
-                    iteration,
-                    loss(X_train[:5000], y_train[:5000], params),
-                    loss(X_valid, y_valid, params),
-                    calloss,
-                    best_score[0]))
+            if verbose:
+                logging.info(
+                    "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
+                    "\tbest_loss(valid)=%.4f" % (
+                        iteration,
+                        loss(X_train[:5000], y_train[:5000], params),
+                        loss(X_valid, y_valid, params),
+                        best_score[0]))
+
 
     for i in range(n_epochs):
         logging.info("epoch = %d" % i)

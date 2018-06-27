@@ -43,6 +43,7 @@ def tftransform(jet,tf) :
 @click.option("--step_size", default=0.0005)
 @click.option("--decay", default=0.9)
 @click.option("--random_state", default=1)
+@click.option("--verbose", is_flag=True,default=False)
 def train(filename_train,
           filename_model,
           n_events_train=-1,
