@@ -132,10 +132,10 @@ def train(filename_train,
         return loss(X_train[idx], y_train[idx], params)
 
     def callback(params, iteration, gradient):
-        if iteration % 500 == 0:
+        if iteration % 25 == 0:
             calloss = loss(X_valid, y_valid,params)
 
-            if calloss > best_score[0]:
+            if calloss < best_score[0]:
                 best_score[0] = calloss
                 best_params[0] = copy.deepcopy(params)
 
