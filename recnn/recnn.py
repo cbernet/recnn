@@ -178,7 +178,6 @@ def grnn_init_simple(n_features, n_hidden, random_state=None):
                       np.zeros(n_hidden),
                       np.ones(1)]}
 
-
 def grnn_transform_simple(params, jets):
     levels, children, n_inners, contents = batch(jets)
     n_levels = len(levels)
@@ -206,13 +205,16 @@ def grnn_transform_simple(params, jets):
     return embeddings[-1].reshape((len(jets), -1))
 
 
-def grnn_predict_simple(params, jets):
+def grnn_predict_simple(params, jets, regression = False):
     h = grnn_transform_simple(params, jets)
-
-    h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-    h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-    h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-
+    if regression :
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+    else :
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
     return h.ravel()
 
 
@@ -303,13 +305,16 @@ def grnn_transform_gated(params, jets, return_states=False):
         return embeddings[-1].reshape((len(jets), -1))
 
 
-def grnn_predict_gated(params, jets):
+def grnn_predict_gated(params, jets, regression = False):
     h = grnn_transform_gated(params, jets)
-
-    h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-    h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-    h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-
+    if regression:
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+    else :
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
     return h.ravel()
 
 
@@ -379,15 +384,18 @@ def event_transform(params, X, n_jets_per_event=10):
 
     return h
 
-
-def event_predict(params, X, n_jets_per_event=10):
+#now useless
+def event_predict(params, X, n_jets_per_event=10,regression = False):
     h = event_transform(params, X,
                         n_jets_per_event=n_jets_per_event)
-
-    h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-    h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-    h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-
+    if regression:
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+    else:
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
     return h.ravel()
 
 
@@ -444,14 +452,17 @@ def event_baseline_transform(params, X, n_particles_per_event=10):
     return h
 
 
-def event_baseline_predict(params, X, n_particles_per_event=10):
+def event_baseline_predict(params, X, n_particles_per_event=10,regression = False):
     h = event_baseline_transform(params, X,
                                  n_particles_per_event=n_particles_per_event)
-
-    h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-    h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-    h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-
+    if regression :
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+    else :
+        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
+        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
+        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
     return h.ravel()
 
 

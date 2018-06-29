@@ -1,5 +1,4 @@
 import autograd as ag
-import click
 import copy
 import numpy as np
 import logging
@@ -17,6 +16,7 @@ from recnn.preprocessing import multithreadmap
 
 
 from recnn.recnn import log_loss
+from recnn.recnn import square_error
 from recnn.recnn import adam
 from recnn.recnn import grnn_init_simple
 from recnn.recnn import grnn_predict_simple
@@ -28,34 +28,23 @@ logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s %(levelname)s] %(message)s")
 
 def tftransform(jet,tf) :
-        jet["content"] = tf.transform(jet["content"])
-	return(jet)
+    jet["content"] = tf.transform(jet["content"])
+    return(jet)
 
-@click.command()
-@click.argument("filename_train")
-@click.argument("filename_model")
-@click.option("--n_events_train", default=-1)
-@click.option("--simple", is_flag=True, default=False)
-@click.option("--n_features", default=7)
-@click.option("--n_hidden", default=40)
-@click.option("--n_epochs", default=5)
-@click.option("--batch_size", default=64)
-@click.option("--step_size", default=0.0005)
-@click.option("--decay", default=0.9)
-@click.option("--random_state", default=1)
-@click.option("--verbose", is_flag=True,default=False)
 def train(filename_train,
           filename_model,
+          regression=False,
           n_events_train=-1,
           simple=False,
           n_features=7,
-          n_hidden=30,
+          n_hidden=40,
           n_epochs=5,
           batch_size=64,
-          step_size=0.01,
-          decay=0.7,
-          random_state=1,
-          verbose=False):
+          step_size=0.0005,
+          decay=0.9,
+          random_state=42,
+          verbose=False,
+          statlimit=-1):
     # Initialization
     gated = not simple
     if verbose:
@@ -82,8 +71,12 @@ def train(filename_train,
         fd.close()
     else:
         X, y = np.load(filename_train)
-    X = np.array(X).astype(dict)
-    y = np.array(y).astype(int)
+    X = np.array(X).astype(dict)[:statlimit]
+    y = np.array(y).astype(float)[:statlimit]
+
+    if regression:
+	    y_pred_0 = [x["pt"] for x in X]
+	    zerovalue=square_error(y, y_pred_0).mean()
 
     if n_events_train > 0:
         indices = check_random_state(123).permutation(len(X))[:n_events_train]
@@ -127,8 +120,11 @@ def train(filename_train,
     best_params = [trained_params]
 
     def loss(X, y, params):
-        y_pred = predict(params, X)
-        l = log_loss(y, y_pred).mean()
+        y_pred = predict(params, X, regression=regression)
+        if regression:
+            l = square_error(y, y_pred).mean()
+        else :
+            l = log_loss(y, y_pred).mean()
         return l
 
     def objective(params, iteration):
@@ -138,7 +134,7 @@ def train(filename_train,
         return loss(X_train[idx], y_train[idx], params)
 
     def callback(params, iteration, gradient):
-        if iteration % 10 == 0:
+        if iteration % 100 == 0:
             the_loss = loss(X_valid, y_valid, params)
             if the_loss < best_score[0]:
                 best_score[0] = the_loss
@@ -149,20 +145,31 @@ def train(filename_train,
                 fd.close()
 
             if verbose:
-                roc_auc = roc_auc_score(y_valid, predict(params, X_valid))
-                logging.info(
-                    "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
-                    "\troc_auc(valid)=%.4f\tbest_loss(valid)=%.4f" % (
-                        iteration,
-                        loss(X_train[:5000], y_train[:5000], params),
-                        loss(X_valid, y_valid, params),
-                        roc_auc,
-                        best_score[0]))
+                if regression :
+                    logging.info(
+                        "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
+                        "\tbest_loss(valid)=%.4f" % (
+                            iteration,
+                            loss(X_train[:5000], y_train[:5000], params),
+                            loss(X_valid, y_valid, params),
+                            best_score[0]))
+                else:
+                    roc_auc = roc_auc_score(y_valid, predict(params, X_valid,regression=regression))
+                    logging.info(
+                        "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
+                        "\troc_auc(valid)=%.4f\tbest_loss(valid)=%.4f" % (
+                            iteration,
+                            loss(X_train[:5000], y_train[:5000], params),
+                            loss(X_valid, y_valid, params),
+                            roc_auc,
+                            best_score[0]))
+
 
     for i in range(n_epochs):
-        if verbose:
-            logging.info("epoch = %d" % i)
-            logging.info("step_size = %.4f" % step_size)
+        logging.info("epoch = %d" % i)
+        logging.info("step_size = %.4f" % step_size)
+        if regression:
+            logging.info("zerovalue = %.4f" % zerovalue)
 
         trained_params = adam(ag.grad(objective),
                               trained_params,
@@ -173,4 +180,35 @@ def train(filename_train,
 
 
 if __name__ == "__main__":
-    train()
+    import argparse
+    parser = argparse.ArgumentParser(description='lol')
+    parser.add_argument("filename_train", help="",type=str)
+    parser.add_argument("filename_model", help="", type=str)
+    parser.add_argument("--regression", help="", action="store_true")
+    parser.add_argument("--n_events_train", help="", type=int, default=-1)
+    parser.add_argument("--n_features", help="", type=int, default=7)
+    parser.add_argument("--n_hidden", help="", type=int, default=40)
+    parser.add_argument("--n_epochs", help="", type=int, default=5)
+    parser.add_argument("--batch_size", help="", type=int, default=64)
+    parser.add_argument("--step_size", help="", type=float, default=0.0005)
+    parser.add_argument("--decay", help="", type=float, default=0.9)
+    parser.add_argument("--random_state", help="", type=int, default=42)
+    parser.add_argument("--statlimit", help="", type=int, default=-1)
+    parser.add_argument("--verbose", help="", action="store_true")
+    parser.add_argument("--simple", help="", action="store_true")
+    args = parser.parse_args()
+    
+    train(filename_train=args.filename_train,
+          filename_model=args.filename_model,
+          regression=args.regression,
+          n_events_train=args.n_events_train,
+          simple=args.simple,
+          n_features=args.n_features,
+          n_hidden=args.n_hidden,
+          n_epochs=args.n_epochs,
+          batch_size=args.batch_size,
+          step_size=args.step_size,
+          decay=args.decay,
+          random_state=args.random_state,
+          verbose=args.verbose,
+          statlimit=args.statlimit)
