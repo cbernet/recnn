@@ -2,8 +2,205 @@ import numpy as np
 import copy
 import pickle
 from functools import partial
+from rootpy.vector import LorentzVector
+from sklearn.preprocessing import RobustScaler
 
 # Data loading related
+
+
+def create_tf_transform(X, y):
+    """loads training data and make a robustscaler transform"""
+    # Make training data
+    X = multithreadmap(rewrite_content,X)
+    X = multithreadmap(extract,X)
+    Xcontent=multithreadmap(extract_component,X,component="content")
+    tf = RobustScaler().fit(np.vstack(Xcontent))
+    return(tf)
+
+def tftransform(jet,tf):
+    """applies a robustscaler transform"""
+    jet["content"] = tf.transform(jet["content"])
+    return(jet)
+
+def load_test_data(tf, X, y):
+    """loads testing data and applying it a tf transform"""
+    # Make test data
+    shuf = np.random.permutation(len(X))
+    X=X[shuf]
+    y=y[shuf]
+    print("Preprocessing...")
+    X = multithreadmap(rewrite_content,X)
+    X = multithreadmap(permute_by_pt,X)
+    X = multithreadmap(extract,X)
+    X=multithreadmap(tftransform,X,tf=tf)
+    return(X, y)
+
+def extract_component(e,component):
+    return(e[component])
+
+def cast(event, soft=0):
+    """
+    Converts an envent into a list of p4, usable by fastjet
+    """
+    a = np.zeros((len(event)+soft, 4))
+    for i, p in enumerate(event):
+        a[i, 3] = p[0]
+        a[i, 0] = p[1]
+        a[i, 1] = p[2]
+        a[i, 2] = p[3]
+    
+    ### Robustness check : sprinkling soft particles ###
+    for i in range(len(event), len(event)+soft):
+        v = LorentzVector()
+        v.set_pt_eta_phi_m(10e-5, np.random.rand() * 10 - 5, np.random.rand() * 2 * np.pi, 0.0)
+        a[i, 0] = v.px
+        a[i, 1] = v.py
+        a[i, 2] = v.pz
+        a[i, 3] = v.e
+    
+    return(a)
+
+def ff(e,cluster,regression=False,R=1.0):
+    """
+    create the Jet dictionary stucture from fastjet
+    """
+    jet = {}
+    if regression:
+        ye=e[-1]
+        e=e[0]
+        jet["genpt"]   = ye
+    t=cast(e, soft=0)
+    tree, content, mass, pt = cluster(t, jet_algorithm=1,R=R)[0]  # dump highest pt jet only
+
+    
+    jet["root_id"] = 0
+    jet["tree"]    = tree    # tree structure, tree[i] constains [left son, right son] of subjet i
+    jet["content"] = content # list of every p4 of every subjet used to create the full jet
+    jet["mass"]    = mass
+    jet["pt"]      = pt
+    jet["energy"]  = content[0, 3]
+
+    px = content[0, 0]
+    py = content[0, 1]
+    pz = content[0, 2]
+    p = (content[0, 0:3] ** 2).sum() ** 0.5
+    eta = 0.5 * (np.log(p + pz) - np.log(p - pz))
+    phi = np.arctan2(py, px)
+    
+    jet["eta"]     = eta
+    jet["phi"]     = phi
+    
+    return(jet)
+
+def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
+    """
+    preprocesses the data to make it usable by the recnn
+    Preprocessing algorithm:
+    1. j = the highest pt anti-kt jet (R=1)
+    2. run kt (R=0.3) on the constituents c of j, resulting in subjets sj1, sj2, ..., sjN
+    3. phi = sj1.phi(); for all c, do c.rotate_z(-phi)
+    4. bv = sj1.boost_vector(); bv.set_perp(0); for all c, do c.boost(-bv)
+    5. deltaz = sj1.pz - sj2.pz; deltay = sj1.py - sj2.py; alpha = -atan2(deltaz, deltay); for all c, do c.rotate_x(alpha)
+    6. if sj3.pz < 0: for all c, do c.set_pz(-c.pz)
+    7. finally recluster all transformed constituents c into a single jet
+    """
+    jet = copy.deepcopy(jet)
+    constituents = jet["content"][jet["tree"][:, 0] == -1]
+    if regression :
+        genpt=jet["genpt"]
+
+    ### run kt (R=0.3) on the constituents c of j, resulting in subjets sj1, sj2, ..., sjN ###
+    subjets = cluster(constituents, R=R_clustering, jet_algorithm=0)
+
+
+    ### Rot phi ###
+    # phi = sj1.phi()
+    # for all c, do c.rotate_z(-phi)
+    v = subjets[0][1][0]
+    v = LorentzVector(v)
+
+    phi = v.phi()
+    
+    for _, content, _, _ in subjets:
+        for i in range(len(content)):
+            v = LorentzVector(content[i])
+            v.rotate_z(-phi)
+            content[i, 0] = v[0]
+            content[i, 1] = v[1]
+            content[i, 2] = v[2]
+            content[i, 3] = v[3]
+
+    ### boost ###
+    # bv = sj1.boost_vector()
+    # bv.set_perp(0)
+    # for all c, do c.boost(-bv)
+    v = subjets[0][1][0]
+    v = LorentzVector(v)
+    bv = v.boost_vector()
+    bv.set_perp(0)
+    for _, content, _, _ in subjets:
+        for i in range(len(content)):
+            v = LorentzVector(content[i])
+            v.boost(-bv)
+            content[i, 0] = v[0]
+            content[i, 1] = v[1]
+            content[i, 2] = v[2]
+            content[i, 3] = v[3]
+    
+    ### Rot alpha ###
+    # deltaz = sj1.pz - sj2.pz
+    # deltay = sj1.py - sj2.py
+    # alpha = -atan2(deltaz, deltay)
+    # for all c, do c.rotate_x(alpha)
+    if len(subjets) >= 2:
+        deltaz = subjets[0][1][0, 2] - subjets[1][1][0, 2]
+        deltay = subjets[0][1][0, 1] - subjets[1][1][0, 1]
+        alpha = -np.arctan2(deltaz, deltay)
+        for _, content, _, _ in subjets:
+            for i in range(len(content)):
+                v = LorentzVector(content[i])
+                v.rotate_x(alpha)
+                content[i, 0] = v[0]
+                content[i, 1] = v[1]
+                content[i, 2] = v[2]
+                content[i, 3] = v[3]
+    
+    ### flip if necessary ###
+    # if sj3.pz < 0: for all c, do c.set_pz(-c.pz)
+    if len(subjets) >= 3 and subjets[2][1][0, 2] < 0:
+        for _, content, _, _ in subjets:
+            for i in range(len(content)):
+                content[i, 2] *= -1.0
+                
+    ### finally recluster all transformed constituents c into a single jet ###
+    constituents = []
+    
+    for tree, content, _, _ in subjets:
+        constituents.append(content[tree[:, 0] == -1])
+        
+    constituents = np.vstack(constituents)
+
+    if output == "anti-kt":
+        subjets = cluster(constituents, R=100., jet_algorithm=1)
+    elif output == "kt":
+        subjets = cluster(constituents, R=100., jet_algorithm=0)
+    elif output == "cambridge":
+        subjets = cluster(constituents, R=100., jet_algorithm=2)
+    else:
+        raise
+    
+    jet["tree"]    = subjets[0][0]
+    jet["content"] = subjets[0][1]
+    v = LorentzVector(jet["content"][0])
+    jet["phi"]     = v.phi()
+    jet["eta"]     = v.eta()
+    jet["energy"]  = v.E()
+    jet["mass"]    = v.m()
+    jet["pt"]      = v.pt()
+    jet["root_id"] = 0
+    if regression:
+        jet["genpt"]   = genpt
+    return(jet)
 
 def load_from_pickle(filename, n_jets):
     jets = []

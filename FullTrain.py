@@ -2,7 +2,7 @@ from trainbis import train
 
 typelist=["subjet","particle"]
 
-filelist=["seqpt","seqpt_reversed","cambridge"]
+filelist=["anti-kt","kt","random","seqpt","seqpt_reversed","cambridge"]
 
 
 
@@ -14,5 +14,5 @@ for i in typelist:
 		print("\n\n\n\n")
 		nametrain="/data/conda/recnn/data/npyfiles/"+i+"_oriented_"+j+"_train.npy"
 		namemodel="/data/conda/recnn/data/models/"+i+"_oriented_"+j+"_model.pickle"
-		train(nametrain,namemodel,n_features=7,n_hidden=40,n_epochs=5,batch_size=64,step_size=0.0005,decay=0.9)
-	filelist=["anti-kt","kt","random","seqpt","seqpt_reversed","cambridge"]
+		train(nametrain,namemodel,n_features=7,n_hidden=40,n_epochs=20,batch_size=64,step_size=0.0005,decay=0.9,regression=False)
+
