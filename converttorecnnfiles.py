@@ -122,29 +122,42 @@ def etatrimtree(tree, isSignal=False, JEC=False):
             tree.Write()
             return newtree, None
         
+def cleanarray(jets_array, addID=False):
+    indexes = multithreadmap(find_first_non_particle, jets_array)
+        
+    jets_array = list(jets_array)
+    
+    for i in range(len(jets_array)):
+	        jets_array[i] = jets_array[i][:indexes[i]]
+            
+    jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
+    
+    return jets_array
+    
+        
 def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False):
         #load data
         tree, testtree = etatrimtree(tree, isSignal=isSignal, JEC=JEC)
         if JEC:
             jets_array = tree2array(tree,'ptcs')
             genpt_array = tree2array(tree,'genpt')
+            test_jets_array = tree2array(testtree,'ptcs')
+            test_genpt_array = tree2array(testtree,'genpt')
+            
         else:
             jets_array = tree2array(tree,'ptcs')
+            test_jets_array = tree2array(testtree,'ptcs')
         #process
-        indexes = multithreadmap(find_first_non_particle, jets_array)
-        
-        jets_array = list(jets_array)
-        
-        for i in range(len(jets_array)):
-	        jets_array[i] = jets_array[i][:indexes[i]]
-                
-        jets_array = multithreadmap(select_particle_features,jets_array, addID=addID)
+        jets_array = cleanarray(jets_array, addID=addID)
+        test_jets_array = cleanarray(test_jets_array, addID=addID)
         
         if JEC:
             genpt_array = list(genpt_array)
             jets_array = zip(jets_array, genpt_array)
+            test_genpt_array = list(test_genpt_array)
+            test_jets_array = zip(test_jets_array, test_genpt_array)
         
-        return jets_array
+        return jets_array, test_jets_array
 
 
 if __name__ == '__main__':
@@ -162,25 +175,27 @@ if __name__ == '__main__':
                     sinputfile = TFile('/data/gtouquet/samples_root/RawSignal.root')
                     stree = sinputfile.Get('tree')
                     outROOTfiles = TFile('/data/gtouquet/samples_root/Test_Train_splitted_{}.root'.format('Signal'),'recreate')
-                    signals = converttorecnnfiles(stree,
-                                                  addID=args.addID,
-                                                  isSignal=True,
-                                                  JEC=args.JEC)
+                    signals, testsignals = converttorecnnfiles(stree,
+                                                               addID=args.addID,
+                                                               isSignal=True,
+                                                               JEC=args.JEC)
                     outROOTfiles.Write()
                     outROOTfiles.Close()
-                    np.save('data/{}{}'.format('Signal', 'JEC' if args.JEC else ''), signals)
+                    np.save('data/{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_train'), signals)
+                    np.save('data/{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_test'), testsignals)
                     
                 #Background files
                 binputfile = TFile('/data/gtouquet/samples_root/RawBackground.root')
                 btree = binputfile.Get('tree')
                 outROOTfileb = TFile('/data/gtouquet/samples_root/Test_Train_splitted_{}.root'.format('Background'),'recreate')
-                backgrounds = converttorecnnfiles(btree,
-                                                  addID=args.addID,
-                                                  isSignal=False,
-                                                  JEC=args.JEC)
+                backgrounds, testbackgrounds = converttorecnnfiles(btree,
+                                                                   addID=args.addID,
+                                                                   isSignal=False,
+                                                                   JEC=args.JEC)
                 outROOTfileb.Write()
                 outROOTfileb.Close()
-                np.save('data/{}{}'.format('Background', 'JEC' if args.JEC else ''), backgrounds)
+                np.save('data/{}{}{}'.format('Background', '_JEC' if args.JEC else '','_train'), backgrounds)
+                np.save('data/{}{}{}'.format('Background', '_JEC' if args.JEC else '','_test'), testbackgrounds)
                 
                 
         else:
