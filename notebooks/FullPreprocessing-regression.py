@@ -38,7 +38,7 @@ np.import_array()
 from libcpp.pair cimport pair
 from libcpp.vector cimport vector
 
-cdef extern from "/home/yohann/Desktop/stage/recnn_copy/notebooks/fj.cc":
+cdef extern from "/home/yohann/Desktop/stage/recnn/notebooks/fj.cc":
     void fj(vector[double]& a, 
             vector[vector[int]]& trees, 
             vector[vector[double]]& contents, 
@@ -83,11 +83,11 @@ X = np.array(signal)
 y = np.array(multithreadmap(extract_component,X,component='genpt'))
 
 # In[]:
-R_clustering = 0.3
-f = basepath+'/npyfilesregression/subjet_oriented_'
+#R_clustering = 0.3
+#f = basepath+'/npyfilesregression/subjet_oriented_'
 
-#R_clustering = 0.000001
-#f = basepath+'/npyfilesregression/particle_oriented_'
+R_clustering = 0.000001
+f = basepath+'/npyfilesregression/particle_oriented_'
 
 
 # In[]:
@@ -121,7 +121,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 
 X_ = multithreadmap(preprocess,X_,output='kt',cluster=cluster,R_clustering=R_clustering)
 
-np.save(f+"kt_train.npy", np.array([X_, y_]))
+np.save(f+"kt_with_id_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### cambridge ###
@@ -157,7 +157,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 
 X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=True)
 
-np.save(f+"seqpt_with_id_reversed_train.npy", np.array([X_, y_]))
+np.save(f+"seqpt_reversed_with_id_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### Verification of the formating ###
