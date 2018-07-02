@@ -51,7 +51,7 @@ def select_particle_features(jet, addID=False):
 	select E,px,py,pz of the particle.
 	"""
         if addID:
-	        return(jet[:,[3,0,1,2,0]])
+	        return(jet[:,[3,0,1,2,4]])
         else:
                 return(jet[:,[3,0,1,2]])
 
@@ -143,7 +143,6 @@ def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False):
             genpt_array = tree2array(tree,'genpt')
             test_jets_array = tree2array(testtree,'ptcs')
             test_genpt_array = tree2array(testtree,'genpt')
-            
         else:
             jets_array = tree2array(tree,'ptcs')
             test_jets_array = tree2array(testtree,'ptcs')
@@ -167,7 +166,14 @@ if __name__ == '__main__':
         parser.add_argument("--isSignal", help=" if is it a signal file (hadronic taus) or background file (QCD jets)?", action="store_true")
         parser.add_argument("--addID", help="whether or not to add the pdgID in the output", action="store_true")
         parser.add_argument("--JEC", help="to make the files needed for JEC regression", action="store_true")
+        parser.add_argument("--tag", help="what tag to add to name of output files", type=str, default='')
         args = parser.parse_args()
+        if args.tag != '':
+            args.tag = '_'+args.tag
+        idtag = ''
+        if args.addID:
+            idtag = '_ID'
+        
 
         if args.rootfile == 'all':
                 if not args.JEC:
@@ -181,8 +187,8 @@ if __name__ == '__main__':
                                                                JEC=args.JEC)
                     outROOTfiles.Write()
                     outROOTfiles.Close()
-                    np.save('data/{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_train'), signals)
-                    np.save('data/{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_test'), testsignals)
+                    np.save('data/{}{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_train', idtag, args.tag), signals)
+                    np.save('data/{}{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_test', idtag, args.tag), testsignals)
                     
                 #Background files
                 binputfile = TFile('/data/gtouquet/samples_root/RawBackground.root')
@@ -194,8 +200,8 @@ if __name__ == '__main__':
                                                                    JEC=args.JEC)
                 outROOTfileb.Write()
                 outROOTfileb.Close()
-                np.save('data/{}{}{}'.format('Background', '_JEC' if args.JEC else '','_train'), backgrounds)
-                np.save('data/{}{}{}'.format('Background', '_JEC' if args.JEC else '','_test'), testbackgrounds)
+                np.save('data/{}{}{}{}'.format('Background', '_JEC' if args.JEC else '','_train', idtag,'_'+args.tag), backgrounds)
+                np.save('data/{}{}{}{}'.format('Background', '_JEC' if args.JEC else '','_test', idtag,'_'+args.tag), testbackgrounds)
                 
                 
         else:
