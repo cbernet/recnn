@@ -47,7 +47,7 @@ static void fj(vector<double>& a,
     // Extract particles from array
     vector<fastjet::PseudoJet> particles;
 
-    for (unsigned int i = 0; i < a.size(); i += 4) {
+    for (unsigned int i = 0; i < a.size(); i += 5) {
         fastjet::PseudoJet p = PseudoJet(a[i], a[i+1], a[i+2], a[i+3]);
         p.set_user_index((int) a[i+4]);
         particles.push_back(p);
