@@ -22,6 +22,7 @@ void _traverse_rec(PseudoJet root, int parent_id, bool is_left,
     content.push_back(root.px());
     content.push_back(root.py());
     content.push_back(root.pz());
+    content.push_back(root.e());
     content.push_back(root.user_index());  // remove this for jet studies
 
     if (root.has_pieces()) {
@@ -47,9 +48,9 @@ static void fj(vector<double>& a,
     // Extract particles from array
     vector<fastjet::PseudoJet> particles;
 
-    for (unsigned int i = 0; i < a.size(); i += 5) {
+    for (unsigned int i = 0; i < a.size(); i += 4) {
         fastjet::PseudoJet p = PseudoJet(a[i], a[i+1], a[i+2], a[i+3]);
-        p.set_user_index((int) i/5);//a[i+4]
+        p.set_user_index((int) i / 4);
         particles.push_back(p);
     }
 
