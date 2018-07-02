@@ -16,7 +16,7 @@ from rootpy.vector import LorentzVector
 sys.path.append("..")
 
 ### Importing preprocessing functions ###
-from recnn.preprocessing import ff
+from recnn.preprocessing import recursive_format
 from recnn.preprocessing import randomize
 from recnn.preprocessing import preprocess
 from recnn.preprocessing import multithreadmap
@@ -67,14 +67,14 @@ cpdef cluster(np.ndarray[np.double_t, ndim=2, mode="c"] a,
     return jets
 
 # In[]:
-### Loading and "jetting" data with ff ###
+### Loading and "jetting" data with recursive_format ###
 signallist = ['/BackgroundJEC.npy']
 
 signal = []
 
 for path_file in signallist:
     events = np.array(np.load(basepath+path_file))
-    signal = signal + multithreadmap(ff, events,cluster=cluster,regression=True,R=1.0)
+    signal = signal + multithreadmap(recursive_format, events,cluster=cluster,regression=True,R=1.0)
 
 # In[]:
 ### creating files to be preprocessed ###

@@ -22,7 +22,7 @@ def tftransform(jet,tf):
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
-def load_test_data(tf, X, y):
+def prepare_test_data(tf, X, y):
     """loads testing data and applying it a tf transform"""
     # Make test data
     shuf = np.random.permutation(len(X))
@@ -60,7 +60,7 @@ def cast(event, soft=0):
     
     return(a)
 
-def ff(e,cluster,regression=False,R=1.0):
+def recursive_format(e,cluster,regression=False,R=1.0):
     """
     create the Jet dictionary stucture from fastjet
     """

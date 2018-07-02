@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from preprocessing import load_test_data
+from preprocessing import prepare_test_data
 from recnn import grnn_predict_gated
 import pickle
 from recnn import grnn_predict_simple
@@ -46,6 +46,6 @@ def evaluate_models(X, y, filename, func=grnn_predict_simple):
     return(roc, fpr, tpr)
 
 def build_rocs(tf, X1, y1, model):
-    X, y = load_test_data(tf, X1, y1) 
+    X, y = prepare_test_data(tf, X1, y1) 
     roc, fpr, tpr = evaluate_models(X, y, model, func=grnn_predict_gated)
     return(roc, fpr, tpr)
