@@ -16,7 +16,7 @@ from rootpy.vector import LorentzVector
 sys.path.append("..")
 
 ### Importing preprocessing functions ###
-from recnn.preprocessing import recursive_format
+from recnn.preprocessing import ff
 from recnn.preprocessing import randomize
 from recnn.preprocessing import preprocess
 from recnn.preprocessing import multithreadmap
@@ -59,13 +59,13 @@ cpdef cluster(np.ndarray[np.double_t, ndim=2, mode="c"] a,
     
     for tree, content, mass, pt in zip(trees, contents, masses, pts):
         tree = np.array(tree).reshape(-1, 2)
-        content = np.array(content).reshape(-1, 4)
+        content = np.array(content).reshape(-1, 5)
         jets.append((tree, content, mass, pt))
         
     return jets
 
 # In[]:
-### Loading and "jetting" data with recursive_format ###
+### Loading and "jetting" data with ff ###
 signallist = ['/Signal.npy']#'HiggsSUSYGG120',
                                   #'HiggsSUSYBB2600',
                                   #'DY1JetsToLL_M50_LO',
@@ -94,13 +94,13 @@ background = []
 
 for path_file in backgroundlist:
     events = np.array(np.load(basepath+path_file))
-    background.extend( multithreadmap(recursive_format, events,cluster=cluster,R=1.0) )
+    background = background + multithreadmap(ff, events,cluster=cluster,R=1.0)
 
 signal = []
 
 for path_file in signallist:
     events = np.array(np.load(basepath+path_file))
-    signal.extend( multithreadmap(recursive_format, events, cluster=cluster,R=1.0) )
+    signal = signal + multithreadmap(ff, events, cluster=cluster,R=1.0)
 
 # In[]:
 ### creating files to be preprocessed ###

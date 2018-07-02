@@ -16,7 +16,7 @@ from rootpy.vector import LorentzVector
 sys.path.append("..")
 
 ### Importing preprocessing functions ###
-from recnn.preprocessing import recursive_format
+from recnn.preprocessing import ff
 from recnn.preprocessing import randomize
 from recnn.preprocessing import preprocess
 from recnn.preprocessing import multithreadmap
@@ -38,7 +38,7 @@ np.import_array()
 from libcpp.pair cimport pair
 from libcpp.vector cimport vector
 
-cdef extern from "/home/yohann/Desktop/stage/recnn/notebooks/fj.cc":
+cdef extern from "/home/yohann/Desktop/stage/recnn_copy/notebooks/fj.cc":
     void fj(vector[double]& a, 
             vector[vector[int]]& trees, 
             vector[vector[double]]& contents, 
@@ -55,26 +55,25 @@ cpdef cluster(np.ndarray[np.double_t, ndim=2, mode="c"] a,
     cdef vector[double] pts 
     for value in a.ravel():
         v.push_back(value)
-    
     fj(v, trees, contents, masses, pts, R=R, jet_algorithm=jet_algorithm)
     jets = []
     
     for tree, content, mass, pt in zip(trees, contents, masses, pts):
         tree = np.array(tree).reshape(-1, 2)
-        content = np.array(content).reshape(-1, 4)
+        content = np.array(content).reshape(-1, 5)
         jets.append((tree, content, mass, pt))
         
     return jets
 
 # In[]:
-### Loading and "jetting" data with recursive_format ###
-signallist = ['/BackgroundJEC.npy']
+### Loading and "jetting" data with ff ###
+signallist = ['/Background_JEC_train_ID.npy']
 
 signal = []
 
 for path_file in signallist:
     events = np.array(np.load(basepath+path_file))
-    signal = signal + multithreadmap(recursive_format, events,cluster=cluster,regression=True,R=1.0)
+    signal = signal + multithreadmap(ff,events,cluster=cluster,regression=True,R=1.0)
 
 # In[]:
 ### creating files to be preprocessed ###
@@ -113,7 +112,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 X_ = multithreadmap(preprocess,X_,output='anti-kt',regression=True,cluster=cluster,R_clustering=R_clustering)
 
 #saving
-np.save(f+"anti-kt_train.npy",np.array([X_, y_]))
+np.save(f+"anti-kt_with_id_train.npy",np.array([X_, y_]))
 
 # In[]:
 ### kt ###
@@ -131,7 +130,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 
 X_ = multithreadmap(preprocess,X_,output='cambridge',cluster=cluster,R_clustering=R_clustering)
 
-np.save(f+"cambridge_train.npy", np.array([X_, y_]))
+np.save(f+"cambridge_with_id_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### random tree ###
@@ -140,7 +139,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 
 X_=multithreadmap(randomize,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering))
 
-np.save(f+"random_train.npy", np.array([X_, y_]))
+np.save(f+"random_with_id_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### seq by pt ###
@@ -149,7 +148,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 
 X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=False)
 
-np.save(f+"seqpt_train.npy", np.array([X_, y_]))
+np.save(f+"seqpt_with_id_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### seq by pt reversed ###
@@ -158,7 +157,7 @@ X_,y_ = np.copy(X[flush]),np.copy(y[flush])
 
 X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=True)
 
-np.save(f+"seqpt_reversed_train.npy", np.array([X_, y_]))
+np.save(f+"seqpt_with_id_reversed_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### Verification of the formating ###

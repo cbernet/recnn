@@ -22,7 +22,7 @@ def tftransform(jet,tf):
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
-def prepare_test_data(tf, X, y):
+def load_test_data(tf, X, y):
     """loads testing data and applying it a tf transform"""
     # Make test data
     shuf = np.random.permutation(len(X))
@@ -38,29 +38,20 @@ def prepare_test_data(tf, X, y):
 def extract_component(e,component):
     return(e[component])
 
-def cast(event, soft=0):
+def cast(event):
     """
     Converts an envent into a list of p4, usable by fastjet
     """
-    a = np.zeros((len(event)+soft, 4))
+    a = np.zeros((len(event), 5))
     for i, p in enumerate(event):
         a[i, 3] = p[0]
         a[i, 0] = p[1]
         a[i, 1] = p[2]
         a[i, 2] = p[3]
-    
-    ### Robustness check : sprinkling soft particles ###
-    for i in range(len(event), len(event)+soft):
-        v = LorentzVector()
-        v.set_pt_eta_phi_m(10e-5, np.random.rand() * 10 - 5, np.random.rand() * 2 * np.pi, 0.0)
-        a[i, 0] = v.px
-        a[i, 1] = v.py
-        a[i, 2] = v.pz
-        a[i, 3] = v.e
-    
+        a[i, 4] = p[4]
     return(a)
 
-def recursive_format(e,cluster,regression=False,R=1.0):
+def ff(e,cluster=None,regression=False,R=1.0):
     """
     create the Jet dictionary stucture from fastjet
     """
@@ -69,9 +60,8 @@ def recursive_format(e,cluster,regression=False,R=1.0):
         ye=e[-1]
         e=e[0]
         jet["genpt"]   = ye
-    t=cast(e, soft=0)
+    t=cast(e)
     tree, content, mass, pt = cluster(t, jet_algorithm=1,R=R)[0]  # dump highest pt jet only
-
     
     jet["root_id"] = 0
     jet["tree"]    = tree    # tree structure, tree[i] constains [left son, right son] of subjet i
@@ -123,7 +113,7 @@ def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
     
     for _, content, _, _ in subjets:
         for i in range(len(content)):
-            v = LorentzVector(content[i])
+            v = LorentzVector(content[i][:4])
             v.rotate_z(-phi)
             content[i, 0] = v[0]
             content[i, 1] = v[1]
@@ -140,7 +130,7 @@ def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
     bv.set_perp(0)
     for _, content, _, _ in subjets:
         for i in range(len(content)):
-            v = LorentzVector(content[i])
+            v = LorentzVector(content[i][:4])
             v.boost(-bv)
             content[i, 0] = v[0]
             content[i, 1] = v[1]
@@ -158,7 +148,7 @@ def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
         alpha = -np.arctan2(deltaz, deltay)
         for _, content, _, _ in subjets:
             for i in range(len(content)):
-                v = LorentzVector(content[i])
+                v = LorentzVector(content[i][:4])
                 v.rotate_x(alpha)
                 content[i, 0] = v[0]
                 content[i, 1] = v[1]
@@ -262,10 +252,12 @@ def permute_by_pt(jet, root_id=None):
 def rewrite_content(jet):
     jet = copy.deepcopy(jet)
 
-    if jet["content"].shape[1] == 5:
-        pflow = jet["content"][:, 4].copy()
-
-    content = jet["content"]
+#    if jet["content"].shape[1] == 5:
+#        pflow = jet["content"][:, 4].copy()
+    content = np.zeros((len(jet["content"]),4+5))
+    content[:,:4] = jet["content"][:,:-1]
+    ids = np.abs(jet['content'][:,-1])
+    content[:,4:] = (np.sqrt(content[:,0]**2+content[:,1]**2) * np.array([np.isclose(ids,211.),np.isclose(ids,130.),np.isclose(ids,11.),np.isclose(ids,13.),np.isclose(ids,22.)],dtype=float)).T
     tree = jet["tree"]
 
     def _rec(i):
@@ -279,8 +271,8 @@ def rewrite_content(jet):
 
     _rec(jet["root_id"])
 
-    if jet["content"].shape[1] == 5:
-        jet["content"][:, 4] = pflow
+#    if jet["content"].shape[1] == 5:
+#        jet["content"][:, 4] = pflow
 
     return jet
 
@@ -292,11 +284,11 @@ def extract(jet, pflow=False):
 
     s = jet["content"].shape
 
-    if not pflow:
-        content = np.zeros((s[0], 7))
-    else:
-        # pflow value will be one-hot encoded
-        content = np.zeros((s[0], 7+4))
+#    if not pflow:
+    content = np.zeros((s[0], 7+5))
+#    else:
+#        # pflow value will be one-hot encoded
+#        content = np.zeros((s[0], 7+4))
 
     for i in range(len(jet["content"])):
         px = jet["content"][i, 0]
@@ -317,10 +309,10 @@ def extract(jet, pflow=False):
                          jet["content"][jet["root_id"], 3])
         content[i, 5] = pt if np.isfinite(pt) else 0.0
         content[i, 6] = theta if np.isfinite(theta) else 0.0
-
-        if pflow:
-            if jet["content"][i, 4] >= 0:
-                content[i, 7+int(jet["content"][i, 4])] = 1.0
+        content[i,7:] = jet["content"][i, -5:]
+#        if pflow:
+#            if jet["content"][i, 4] >= 0:
+#                content[i, 7+int(jet["content"][i, 4])] = 1.0
 
     jet["content"] = content
 
@@ -351,8 +343,8 @@ def randomize(jet):
         nodes.append(next_id)
         c = (content[left] + content[right])
 
-        if len(c) == 5:
-            c[-1] = -1
+#        if len(c) == 5:
+#            c[-1] = -1
 
         content.append(c)
         tree.append([left, right])

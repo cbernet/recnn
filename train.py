@@ -36,7 +36,7 @@ def train(filename_train,
           regression=False,
           n_events_train=-1,
           simple=False,
-          n_features=7,
+          n_features=12,
           n_hidden=40,
           n_epochs=5,
           batch_size=64,
@@ -91,7 +91,9 @@ def train(filename_train,
     # Preprocessing
     if verbose:
         logging.info("Preprocessing...")
-    X = multithreadmap(extract,multithreadmap(permute_by_pt,multithreadmap(rewrite_content,X)))
+    X=multithreadmap(rewrite_content,X)
+    X=multithreadmap(permute_by_pt,X)
+    X = multithreadmap(extract,X)
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
     X = multithreadmap(tftransform,X,tf=tf)
@@ -186,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("filename_model", help="", type=str)
     parser.add_argument("--regression", help="", action="store_true")
     parser.add_argument("--n_events_train", help="", type=int, default=-1)
-    parser.add_argument("--n_features", help="", type=int, default=7)
+    parser.add_argument("--n_features", help="", type=int, default=12)
     parser.add_argument("--n_hidden", help="", type=int, default=40)
     parser.add_argument("--n_epochs", help="", type=int, default=5)
     parser.add_argument("--batch_size", help="", type=int, default=64)
