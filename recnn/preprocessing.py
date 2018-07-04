@@ -11,8 +11,6 @@ from sklearn.preprocessing import RobustScaler
 def create_tf_transform(X, y):
     """loads training data and make a robustscaler transform"""
     # Make training data
-    X = multithreadmap(rewrite_content,X)
-    X = multithreadmap(extract,X)
     Xcontent=multithreadmap(extract_component,X,component="content")
     tf = RobustScaler().fit(np.vstack(Xcontent))
     return(tf)
@@ -22,13 +20,9 @@ def tftransform(jet,tf):
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
-def load_test_data(tf, X, y):
+def prepare_test_data(tf, X, y):
     """loads testing data and applying it a tf transform"""
     # Make test data
-    print("Preprocessing...")
-    X = multithreadmap(rewrite_content,X)
-    X = multithreadmap(permute_by_pt,X)
-    X = multithreadmap(extract,X)
     X=multithreadmap(tftransform,X,tf=tf)
     return(X, y)
 

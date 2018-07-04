@@ -9,11 +9,6 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import RobustScaler
 from sklearn.utils import check_random_state
 
-from recnn.preprocessing import rewrite_content
-from recnn.preprocessing import permute_by_pt
-from recnn.preprocessing import extract
-from recnn.preprocessing import multithreadmap
-
 
 from recnn.recnn import log_loss
 from recnn.recnn import square_error
@@ -22,7 +17,7 @@ from recnn.recnn import grnn_init_simple
 from recnn.recnn import grnn_predict_simple
 from recnn.recnn import grnn_init_gated
 from recnn.recnn import grnn_predict_gated
-
+from recnn.preprocessing import multithreadmap
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s %(levelname)s] %(message)s")
@@ -73,10 +68,11 @@ def train(filename_train,
         X, y = np.load(filename_train)
     X = np.array(X).astype(dict)[:statlimit]
     y = np.array(y).astype(float)[:statlimit]
-
+    flush = np.random.permutation(len(X))
+    X,y=X[flush],y[flush]
     if regression:
 	    y_pred_0 = [x["pt"] for x in X]
-	    zerovalue=square_error(y, y_pred_0).mean()
+	    zerovalue=square_error(y, y_pred_0).mean()        
 
     if n_events_train > 0:
         indices = check_random_state(123).permutation(len(X))[:n_events_train]
@@ -91,9 +87,6 @@ def train(filename_train,
     # Preprocessing
     if verbose:
         logging.info("Preprocessing...")
-    X=multithreadmap(rewrite_content,X)
-    X=multithreadmap(permute_by_pt,X)
-    X = multithreadmap(extract,X)
     tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
 
     X = multithreadmap(tftransform,X,tf=tf)

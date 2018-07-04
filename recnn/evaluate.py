@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from preprocessing import load_test_data
-from recnn import grnn_predict_gated
 import pickle
-from recnn import grnn_predict_simple
 
 
 def compute_roc_curve(y, y_pred,density=1000):
@@ -28,7 +25,7 @@ def compute_roc_curve(y, y_pred,density=1000):
     return(fpr,tpr,t)
 
 # In[]:
-def predict(X, filename, func=grnn_predict_simple):
+def predict(X, filename, func=None):
     """make prediction function"""
     fd = open(filename, "rb")
     params = pickle.load(fd)
@@ -36,16 +33,11 @@ def predict(X, filename, func=grnn_predict_simple):
     y_pred = func(params, X)
     return(y_pred)
 
-def evaluate_models(X, y, filename, func=grnn_predict_simple):
-    """evaluates a model"""
+def build_roc(X, y, filename, func=None):
+    """evaluates a model and build its roc curve"""
     print("Loading " + filename),
     y_pred = predict(X, filename, func=func)
     fpr, tpr, _ = compute_roc_curve(y, y_pred,density=10000)
     roc = np.trapz(-tpr,fpr)
     print("ROC AUC = %.4f" % roc)
-    return(roc, fpr, tpr)
-
-def build_rocs(tf, X1, y1, model):
-    X, y = load_test_data(tf, X1, y1) 
-    roc, fpr, tpr = evaluate_models(X, y, model, func=grnn_predict_gated)
     return(roc, fpr, tpr)

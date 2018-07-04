@@ -1,6 +1,6 @@
 from train import train
 
-typelist=["subjet","particle"]
+typelist=["particle"]
 
 filelist=["anti-kt","kt","random","seqpt","seqpt_reversed","cambridge"]
 
