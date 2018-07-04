@@ -73,7 +73,7 @@ signal = []
 
 for path_file in signallist:
     events = np.array(np.load(basepath+path_file))
-    signal = signal + multithreadmap(ff,events,cluster=cluster,regression=True,R=1.0)
+    signal = signal + multithreadmap(ff,events,cluster=cluster,regression=True,R=1000.)
 
 # In[]:
 ### creating files to be preprocessed ###
@@ -82,82 +82,81 @@ print(len(signal))
 X = np.array(signal)
 y = np.array(multithreadmap(extract_component,X,component='genpt'))
 
-# In[]:
-#R_clustering = 0.3
-#f = basepath+'/npyfilesregression/subjet_oriented_'
-
-R_clustering = 0.000001
-f = basepath+'/npyfilesregression/particle_oriented_'
 
 
-# In[]:
-### eliminate single particles ###
-i=0
-while i < (len(y)):
-    if X[i]['tree'].shape == (1, 2):
-        X,y=np.delete(X,i),np.delete(y,i)
-    else :
-        i+=1
 
-# In[]:
-### Save all versions of the dataset ###
 
-### anti-kt ###
 
-#random permutation
-flush = np.random.permutation(len(X))
-X_,y_ = np.copy(X[flush]),np.copy(y[flush])
-
-#preprocess
-X_ = multithreadmap(preprocess,X_,output='anti-kt',regression=True,cluster=cluster,R_clustering=R_clustering)
-
-#saving
-np.save(f+"anti-kt_with_id_train.npy",np.array([X_, y_]))
-
-# In[]:
-### kt ###
-flush = np.random.permutation(len(X))
-X_,y_ = np.copy(X[flush]),np.copy(y[flush])
-
-X_ = multithreadmap(preprocess,X_,output='kt',cluster=cluster,R_clustering=R_clustering)
-
-np.save(f+"kt_with_id_train.npy", np.array([X_, y_]))
-
-# In[]:
-### cambridge ###
-flush = np.random.permutation(len(X))
-X_,y_ = np.copy(X[flush]),np.copy(y[flush])
-
-X_ = multithreadmap(preprocess,X_,output='cambridge',cluster=cluster,R_clustering=R_clustering)
-
-np.save(f+"cambridge_with_id_train.npy", np.array([X_, y_]))
-
-# In[]:
-### random tree ###
-flush = np.random.permutation(len(X))
-X_,y_ = np.copy(X[flush]),np.copy(y[flush])
-
-X_=multithreadmap(randomize,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering))
-
-np.save(f+"random_with_id_train.npy", np.array([X_, y_]))
-
-# In[]:
-### seq by pt ###
-flush = np.random.permutation(len(X))
-X_,y_ = np.copy(X[flush]),np.copy(y[flush])
-
-X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=False)
-
-np.save(f+"seqpt_with_id_train.npy", np.array([X_, y_]))
-
-# In[]:
-### seq by pt reversed ###
-flush = np.random.permutation(len(X))
-X_,y_ = np.copy(X[flush]),np.copy(y[flush])
-
-X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=True)
-
-np.save(f+"seqpt_reversed_with_id_train.npy", np.array([X_, y_]))
+for R_clustering,f in [(0.3,basepath+'/npyfilesregression/subjet_oriented_'),( 0.000001,basepath+'/npyfilesregression/particle_oriented_')]:
+    
+    ## In[]:
+    ### eliminate single particles ###
+    i=0
+    while i < (len(y)):
+        if X[i]['tree'].shape == (1, 2):
+            X,y=np.delete(X,i),np.delete(y,i)
+        else :
+            i+=1
+    
+    ## In[]:
+    ### Save all versions of the dataset ###
+    
+    ### anti-kt ###
+    
+    #random permutation
+    flush = np.random.permutation(len(X))
+    X_,y_ = np.copy(X[flush]),np.copy(y[flush])
+    
+    #preprocess
+    X_ = multithreadmap(preprocess,X_,output='anti-kt',regression=True,cluster=cluster,R_clustering=R_clustering)
+    
+    #saving
+    np.save(f+"anti-kt_with_id_train.npy",np.array([X_, y_]))
+    
+    ## In[]:
+    ### kt ###
+    flush = np.random.permutation(len(X))
+    X_,y_ = np.copy(X[flush]),np.copy(y[flush])
+    
+    X_ = multithreadmap(preprocess,X_,output='kt',cluster=cluster,R_clustering=R_clustering)
+    
+    np.save(f+"kt_with_id_train.npy", np.array([X_, y_]))
+    
+    ## In[]:
+    ### cambridge ###
+    flush = np.random.permutation(len(X))
+    X_,y_ = np.copy(X[flush]),np.copy(y[flush])
+    
+    X_ = multithreadmap(preprocess,X_,output='cambridge',cluster=cluster,R_clustering=R_clustering)
+    
+    np.save(f+"cambridge_with_id_train.npy", np.array([X_, y_]))
+    
+    ## In[]:
+    ### random tree ###
+    flush = np.random.permutation(len(X))
+    X_,y_ = np.copy(X[flush]),np.copy(y[flush])
+    
+    X_=multithreadmap(randomize,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering))
+    
+    np.save(f+"random_with_id_train.npy", np.array([X_, y_]))
+    
+    ## In[]:
+    ### seq by pt ###
+    flush = np.random.permutation(len(X))
+    X_,y_ = np.copy(X[flush]),np.copy(y[flush])
+    
+    X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=False)
+    
+    np.save(f+"seqpt_with_id_train.npy", np.array([X_, y_]))
+    
+    ## In[]:
+    ### seq by pt reversed ###
+    flush = np.random.permutation(len(X))
+    X_,y_ = np.copy(X[flush]),np.copy(y[flush])
+    
+    X_=multithreadmap(sequentialize_by_pt,multithreadmap(preprocess,X_,output="anti-kt",cluster=cluster,R_clustering=R_clustering),reverse=True)
+    
+    np.save(f+"seqpt_reversed_with_id_train.npy", np.array([X_, y_]))
 
 # In[]:
 ### Verification of the formating ###

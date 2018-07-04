@@ -25,9 +25,6 @@ def tftransform(jet,tf):
 def load_test_data(tf, X, y):
     """loads testing data and applying it a tf transform"""
     # Make test data
-    shuf = np.random.permutation(len(X))
-    X=X[shuf]
-    y=y[shuf]
     print("Preprocessing...")
     X = multithreadmap(rewrite_content,X)
     X = multithreadmap(permute_by_pt,X)
@@ -257,7 +254,7 @@ def rewrite_content(jet):
     content = np.zeros((len(jet["content"]),4+5))
     content[:,:4] = jet["content"][:,:-1]
     ids = np.abs(jet['content'][:,-1])
-    content[:,4:] = (np.sqrt(content[:,0]**2+content[:,1]**2) * np.array([np.isclose(ids,211.),np.isclose(ids,130.),np.isclose(ids,11.),np.isclose(ids,13.),np.isclose(ids,22.)],dtype=float)).T
+    content[:,4:] = ((content[:,3]/jet["energy"]) * np.array([np.isclose(ids,211.),np.isclose(ids,130.),np.isclose(ids,11.),np.isclose(ids,13.),np.isclose(ids,22.)],dtype=float)).T
     tree = jet["tree"]
 
     def _rec(i):
@@ -309,7 +306,7 @@ def extract(jet, pflow=False):
                          jet["content"][jet["root_id"], 3])
         content[i, 5] = pt if np.isfinite(pt) else 0.0
         content[i, 6] = theta if np.isfinite(theta) else 0.0
-        content[i,7:] = jet["content"][i, -5:]
+        content[i,7:] = jet["content"][i, -5:]/pt
 #        if pflow:
 #            if jet["content"][i, 4] >= 0:
 #                content[i, 7+int(jet["content"][i, 4])] = 1.0

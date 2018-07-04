@@ -233,8 +233,10 @@ def grnn_init_gated(n_features, n_hidden, random_state=None):
             "b_r": np.zeros(3 * n_hidden),
             "W_clf": [glorot_uniform(n_hidden, n_hidden, rng),
                       glorot_uniform(n_hidden, n_hidden, rng),
+                      glorot_uniform(n_hidden, n_hidden, rng),
                       glorot_uniform(n_hidden, 0, rng)],
             "b_clf": [np.zeros(n_hidden),
+                      np.zeros(n_hidden),
                       np.zeros(n_hidden),
                       np.ones(1)]}
 
@@ -311,10 +313,12 @@ def grnn_predict_gated(params, jets, regression = False):
         h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
         h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
         h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+        h = relu(np.dot(params["W_clf"][3], h.T).T + params["b_clf"][3])
     else :
         h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
         h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
+        h = sigmoid(np.dot(params["W_clf"][3], h.T).T + params["b_clf"][3])
     return h.ravel()
 
 
