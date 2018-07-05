@@ -20,6 +20,9 @@ def tftransform(jet,tf):
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
+def apply_tf_transform(X,tf):
+    return(multithreadmap(tftransform,X,tf=tf))
+
 
 def extract_component(e,component):
     return(e[component])
