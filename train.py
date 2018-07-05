@@ -6,7 +6,6 @@ import pickle
 
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import RobustScaler
 from sklearn.utils import check_random_state
 
 
@@ -17,14 +16,12 @@ from recnn.recnn import grnn_init_simple
 from recnn.recnn import grnn_predict_simple
 from recnn.recnn import grnn_init_gated
 from recnn.recnn import grnn_predict_gated
-from recnn.preprocessing import multithreadmap
+from recnn.preprocessing import apply_tf_transform
+from recnn.preprocessing import create_tf_transform
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s %(levelname)s] %(message)s")
 
-def tftransform(jet,tf) :
-    jet["content"] = tf.transform(jet["content"])
-    return(jet)
 
 def train(filename_train,
           filename_model,
@@ -87,9 +84,9 @@ def train(filename_train,
     # Preprocessing
     if verbose:
         logging.info("Preprocessing...")
-    tf = RobustScaler().fit(np.vstack([jet["content"] for jet in X]))
+    tf = create_tf_transform(X)
 
-    X = multithreadmap(tftransform,X,tf=tf)
+    X = apply_tf_transform(X,tf)
 
     # Split into train+validation
     logging.info("Splitting into train and validation...")

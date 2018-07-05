@@ -8,7 +8,7 @@ from sklearn.preprocessing import RobustScaler
 # Data loading related
 
 
-def create_tf_transform(X, y):
+def create_tf_transform(X):
     """loads training data and make a robustscaler transform"""
     # Make training data
     Xcontent=multithreadmap(extract_component,X,component="content")
@@ -20,11 +20,8 @@ def tftransform(jet,tf):
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
-def prepare_test_data(tf, X, y):
-    """loads testing data and applying it a tf transform"""
-    # Make test data
-    X=multithreadmap(tftransform,X,tf=tf)
-    return(X, y)
+def apply_tf_transform(X,tf):
+    return(multithreadmap(tftransform,X,tf=tf))
 
 def extract_component(e,component):
     return(e[component])

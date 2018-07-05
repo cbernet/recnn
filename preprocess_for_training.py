@@ -4,11 +4,7 @@
 ### Importing usefull packages ###
 
 import sys
-import copy
 import numpy as np
-import multiprocessing as mp
-from functools import partial
-from rootpy.vector import LorentzVector
 sys.path.append("..")
 
 ### Importing preprocessing functions ###
