@@ -4,8 +4,19 @@ import pickle
 from functools import partial
 from rootpy.vector import LorentzVector
 from sklearn.preprocessing import RobustScaler
+import multiprocessing as mp
 
 # Data loading related
+
+def multithreadmap(f,X,ncores=20, **kwargs):
+	"""
+	multithreading map of a function, default on 20 cpu cores.
+	"""
+	func = partial(f, **kwargs)
+	p=mp.Pool(ncores)
+	Xout = p.map(func,X)
+	p.terminate()
+	return(Xout)
 
 
 def create_tf_transform(X):
@@ -16,11 +27,12 @@ def create_tf_transform(X):
     return(tf)
 
 def tftransform(jet,tf):
-    """applies a robustscaler transform"""
+    """applies a robustscaler transform to one jet"""
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
 def apply_tf_transform(X,tf):
+    """applies a robustscaler transform to a jet array"""
     return(multithreadmap(tftransform,X,tf=tf))
 
 def extract_component(e,component):
@@ -181,6 +193,7 @@ def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
     return(jet)
 
 def load_from_pickle(filename, n_jets):
+    """loads a pickle file"""
     jets = []
     fd = open(filename, "rb")
 
@@ -193,20 +206,11 @@ def load_from_pickle(filename, n_jets):
     return jets
 
 
-import multiprocessing as mp
-def multithreadmap(f,X,ncores=20, **kwargs):
-	"""
-	multithreading map of a function, default on 20 cpu cores.
-	"""
-	func = partial(f, **kwargs)
-	p=mp.Pool(ncores)
-	Xout = p.map(func,X)
-	p.terminate()
-	return(Xout)
 
 # Jet related
 
 def _pt(v):
+    """computes the pt of a LorentzVector"""
     pz = v[2]
     p = (v[0:3] ** 2).sum() ** 0.5
     eta = 0.5 * (np.log(p + pz) - np.log(p - pz))
@@ -215,6 +219,7 @@ def _pt(v):
 
 
 def permute_by_pt(jet, root_id=None):
+    """Makes the hightest pt subjet the right subjet"""
     # ensure that the left sub-jet has always a larger pt than the right
 
     if root_id is None:
@@ -238,6 +243,7 @@ def permute_by_pt(jet, root_id=None):
 
 
 def rewrite_content(jet):
+    """computes successive fusions and ids."""
     jet = copy.deepcopy(jet)
 
 #    if jet["content"].shape[1] == 5:
@@ -266,7 +272,7 @@ def rewrite_content(jet):
 
 
 def extract(jet, pflow=False):
-    # per node feature extraction
+    """per node feature extraction"""
 
     jet = copy.deepcopy(jet)
 
@@ -308,7 +314,7 @@ def extract(jet, pflow=False):
 
 
 def randomize(jet):
-    # build a random tree
+    """build a random tree"""
 
     jet = copy.deepcopy(jet)
 
@@ -347,7 +353,7 @@ def randomize(jet):
 
 
 def sequentialize_by_pt(jet, reverse=False):
-    # transform the tree into a sequence ordered by pt
+    """transform the tree into a sequence ordered by pt"""
 
     jet = copy.deepcopy(jet)
 
@@ -357,8 +363,8 @@ def sequentialize_by_pt(jet, reverse=False):
     nodes = [i for i in range(len(nodes))]
     tree = [[-1, -1] for n in nodes]
     pool = sorted([n for n in nodes],
-                  key=lambda n: _pt(content[n]),
-                  reverse=reverse)
+                  key = lambda n: _pt(content[n]),
+                  reverse = reverse)
     next_id = len(pool)
 
     while len(pool) >= 2:

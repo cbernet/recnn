@@ -9,21 +9,21 @@ from recnn.preprocessing import create_tf_transform
 
 def compute_roc_curve(y, y_pred,density=1000):
     """return the roc curve"""
-    back = np.argwhere(y==0)
+    back = np.argwhere(y == 0)
     back = back.reshape((len(back),))
-    sign = np.argwhere(y==1)
-    sign=sign.reshape((len(sign),))
+    sign = np.argwhere(y == 1)
+    sign = sign.reshape((len(sign),))
     #prediction
-    y_pred_sign=y_pred[sign]
-    y_pred_back=y_pred[back]
-    t=np.linspace(0.,1.,density)
-    tpr=np.zeros(density,dtype=float)
-    fpr=np.zeros(density,dtype=float)
+    y_pred_sign = y_pred[sign]
+    y_pred_back = y_pred[back]
+    t = np.linspace(0.,1.,density)
+    tpr = np.zeros(density,dtype = float)
+    fpr = np.zeros(density,dtype = float)
     for i in range(density):
-        tpr[i]=np.sum(y_pred_sign<=t[i])
-        fpr[i]=np.sum(y_pred_back<=t[i])
-    tpr=1-tpr/len(y_pred_sign)
-    fpr=1-fpr/len(y_pred_back)
+        tpr[i] = np.sum(y_pred_sign <= t[i])
+        fpr[i] = np.sum(y_pred_back <= t[i])
+    tpr = 1-tpr/len(y_pred_sign)
+    fpr = 1-fpr/len(y_pred_back)
     return(fpr,tpr,t)
 
 # In[]:

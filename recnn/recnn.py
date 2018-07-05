@@ -6,7 +6,7 @@ from sklearn.utils import check_random_state
 # Batchization of the recursion
 
 def batch(jets):
-    # Batch the recursive activations across all nodes of a same level
+    """ Batch the recursive activations across all nodes of a same level
     # !!! Assume that jets have at least one inner node.
     #     Leads to off-by-one errors otherwise :(
 
@@ -17,23 +17,23 @@ def batch(jets):
     #     jet_children[node_id, 1] is the node_id of the right child of node_id
     #
     # jet_contents: array of shape [n_nodes, n_features]
-    #     jet_contents[node_id] is the feature vector of node_id
+    #     jet_contents[node_id] is the feature vector of node_id"""
     jet_children = []
     offset = 0
 
     for jet in jets:
         tree = np.copy(jet["tree"])
-        tree[tree != -1] += offset
+        tree[tree !=  -1] +=  offset
         jet_children.append(tree)
-        offset += len(tree)
+        offset +=  len(tree)
 
     jet_children = np.vstack(jet_children)
     jet_contents = np.vstack([jet["content"] for jet in jets])
     n_nodes = offset
 
     # Level-wise traversal
-    level_children = np.zeros((n_nodes, 4), dtype=np.int32)
-    level_children[:, [0, 2]] -= 1
+    level_children = np.zeros((n_nodes, 4), dtype = np.int32)
+    level_children[:, [0, 2]] -=  1
 
     inners = []   # Inner nodes at level i
     outers = []   # Outer nodes at level i
@@ -51,7 +51,7 @@ def batch(jets):
                 outers.append([])
 
             # Inner node
-            if jet_children[node, 0] != -1:
+            if jet_children[node, 0] !=  -1:
                 inners[depth].append(node)
                 position = len(inners[depth]) - 1
                 is_leaf = False
@@ -66,7 +66,7 @@ def batch(jets):
                 is_leaf = True
 
             # Register node at its parent
-            if parent >= 0:
+            if parent > =  0:
                 if is_left:
                     level_children[parent, 0] = position
                     level_children[parent, 1] = is_leaf
@@ -74,25 +74,25 @@ def batch(jets):
                     level_children[parent, 2] = position
                     level_children[parent, 3] = is_leaf
 
-        offset += len(jet["tree"])
+        offset +=  len(jet["tree"])
 
     # Reorganize levels[i] so that inner nodes appear first, then outer nodes
     levels = []
     n_inners = []
     contents = []
 
-    prev_inner = np.array([], dtype=int)
+    prev_inner = np.array([], dtype = int)
 
     for inner, outer in zip(inners, outers):
         n_inners.append(len(inner))
-        inner = np.array(inner, dtype=int)
-        outer = np.array(outer, dtype=int)
+        inner = np.array(inner, dtype = int)
+        outer = np.array(outer, dtype = int)
         levels.append(np.concatenate((inner, outer)))
 
         left = prev_inner[level_children[prev_inner, 1] == 1]
-        level_children[left, 0] += len(inner)
+        level_children[left, 0] +=  len(inner)
         right = prev_inner[level_children[prev_inner, 3] == 1]
-        level_children[right, 2] += len(inner)
+        level_children[right, 2] +=  len(inner)
 
         contents.append(jet_contents[levels[-1]])
 
@@ -126,7 +126,7 @@ def sigmoid(x):
     return 0.5 * (np.tanh(x) + 1.0)
 
 
-def relu(x, alpha=0.0):
+def relu(x, alpha = 0.0):
     if alpha == 0.0:
         return 0.5 * (x + np.abs(x))
     else:
@@ -136,8 +136,8 @@ def relu(x, alpha=0.0):
 
 
 def logsumexp(X):
-    max_X = np.max(X, axis=-1)[..., np.newaxis]
-    return max_X + np.log(np.sum(np.exp(X - max_X), axis=-1)[..., np.newaxis])
+    max_X = np.max(X, axis = -1)[..., np.newaxis]
+    return max_X + np.log(np.sum(np.exp(X - max_X), axis = -1)[..., np.newaxis])
 
 
 def softmax(X):
@@ -146,7 +146,7 @@ def softmax(X):
 
 # Initializations
 
-def glorot_uniform(fan_in, fan_out, rng, scale=0.1):
+def glorot_uniform(fan_in, fan_out, rng, scale = 0.1):
     s = scale * np.sqrt(6. / (fan_in + fan_out))
     if fan_out > 0:
         return rng.rand(fan_in, fan_out) * 2 * s - s
@@ -154,10 +154,10 @@ def glorot_uniform(fan_in, fan_out, rng, scale=0.1):
         return rng.rand(fan_in) * 2 * s - s
 
 
-def orthogonal(shape, rng, scale=1.1):
+def orthogonal(shape, rng, scale = 1.1):
     # from Keras
     a = rng.normal(0.0, 1.0, shape)
-    u, _, v = np.linalg.svd(a, full_matrices=False)
+    u, _, v = np.linalg.svd(a, full_matrices = False)
     q = u if u.shape == shape else v
     q = q.reshape(shape)
     return scale * q
@@ -165,7 +165,8 @@ def orthogonal(shape, rng, scale=1.1):
 
 # Simple recursive activation
 
-def grnn_init_simple(n_features, n_hidden, random_state=None):
+def grnn_init_simple(n_features, n_hidden, random_state = None):
+    """initialisation of the recnn"""
     rng = check_random_state(random_state)
     return {"W_u": glorot_uniform(n_hidden, n_features, rng),
             "b_u": np.zeros(n_hidden),
@@ -205,6 +206,7 @@ def grnn_transform_simple(params, jets):
 
 
 def grnn_predict_simple(params, jets, regression = False):
+    """make prediction"""
     h = grnn_transform_simple(params, jets)
     if regression :
         h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
@@ -219,7 +221,8 @@ def grnn_predict_simple(params, jets, regression = False):
 
 # Gated recursive activation
 
-def grnn_init_gated(n_features, n_hidden, random_state=None):
+def grnn_init_gated(n_features, n_hidden, random_state = None):
+    """initialisation of the recnn"""
     rng = check_random_state(random_state)
 
     return {"W_u": glorot_uniform(n_hidden, n_features, rng),
@@ -240,7 +243,7 @@ def grnn_init_gated(n_features, n_hidden, random_state=None):
                       np.ones(1)]}
 
 
-def grnn_transform_gated(params, jets, return_states=False):
+def grnn_transform_gated(params, jets, return_states = False):
     levels, children, n_inners, contents = batch(jets)
     n_levels = len(levels)
     n_hidden = len(params["b_u"])
@@ -279,7 +282,7 @@ def grnn_transform_gated(params, jets, return_states=False):
             z = np.concatenate([z_H[..., np.newaxis],
                                 z_L[..., np.newaxis],
                                 z_R[..., np.newaxis],
-                                z_N[..., np.newaxis]], axis=2)
+                                z_N[..., np.newaxis]], axis = 2)
             z = softmax(z)
 
             h = (np.multiply(z[:, :, 0], h_H) +
@@ -307,6 +310,7 @@ def grnn_transform_gated(params, jets, return_states=False):
 
 
 def grnn_predict_gated(params, jets, regression = False):
+    """make prediction"""
     h = grnn_transform_gated(params, jets)
     if regression:
         h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
@@ -321,154 +325,6 @@ def grnn_predict_gated(params, jets, regression = False):
     return h.ravel()
 
 
-# Event-level classification
-def event_init(n_features_embedding,
-               n_hidden_embedding,
-               n_features_rnn,
-               n_hidden_rnn,
-               n_jets_per_event,
-               random_state=None):
-    rng = check_random_state(random_state)
-    params = grnn_init_simple(n_features_embedding,
-                              n_hidden_embedding,
-                              random_state=rng)
-
-    params.update({
-        "rnn_W_hh": orthogonal((n_hidden_rnn, n_hidden_rnn), rng),
-        "rnn_W_hx": glorot_uniform(n_hidden_rnn, n_features_rnn, rng),
-        "rnn_b_h": np.zeros(n_hidden_rnn),
-        "rnn_W_zh": orthogonal((n_hidden_rnn, n_hidden_rnn,), rng),
-        "rnn_W_zx": glorot_uniform(n_hidden_rnn, n_features_rnn, rng),
-        "rnn_b_z": np.zeros(n_hidden_rnn),
-        "rnn_W_rh": orthogonal((n_hidden_rnn, n_hidden_rnn,), rng),
-        "rnn_W_rx": glorot_uniform(n_hidden_rnn, n_features_rnn, rng),
-        "rnn_b_r": np.zeros(n_hidden_rnn),
-        "W_clf": [glorot_uniform(n_hidden_rnn, n_hidden_rnn, rng),
-                  glorot_uniform(n_hidden_rnn, n_hidden_rnn, rng),
-                  glorot_uniform(n_hidden_rnn, 0, rng)],
-        "b_clf": [np.zeros(n_hidden_rnn),
-                  np.zeros(n_hidden_rnn),
-                  np.ones(1)]
-        })
-
-    return params
-
-
-def event_transform(params, X, n_jets_per_event=10):
-    # Assume events e_j are structured as pairs (features, jets)
-    # where features is a N_j x n_features array
-    #       jets is a list of N_j jets
-
-    # Convert jets
-    jets = []
-    features = []
-
-    for e in X:
-        features.append(e[0][:n_jets_per_event])
-        jets.extend(e[1][:n_jets_per_event])
-
-    h_jets = np.hstack([
-        np.vstack(features),
-        grnn_transform_simple(params, jets)])
-    h_jets = h_jets.reshape(len(X), n_jets_per_event, -1)
-
-    # GRU layer
-    h = np.zeros((len(X), params["rnn_b_h"].shape[0]))
-
-    for t in range(n_jets_per_event):
-        xt = h_jets[:, n_jets_per_event - 1 - t, :]
-        zt = sigmoid(np.dot(params["rnn_W_zh"], h.T).T +
-                     np.dot(params["rnn_W_zx"], xt.T).T + params["rnn_b_z"])
-        rt = sigmoid(np.dot(params["rnn_W_rh"], h.T).T +
-                     np.dot(params["rnn_W_rx"], xt.T).T + params["rnn_b_r"])
-        ht = relu(np.dot(params["rnn_W_hh"], np.multiply(rt, h).T).T +
-                  np.dot(params["rnn_W_hx"], xt.T).T + params["rnn_b_h"])
-        h = np.multiply(1. - zt, h) + np.multiply(zt, ht)
-
-    return h
-
-#now useless
-def event_predict(params, X, n_jets_per_event=10,regression = False):
-    h = event_transform(params, X,
-                        n_jets_per_event=n_jets_per_event)
-    if regression:
-        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-    else:
-        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-    return h.ravel()
-
-
-# Event baseline (direct gru)
-def event_baseline_init(n_features_rnn,
-                        n_hidden_rnn,
-                        random_state=None):
-    rng = check_random_state(random_state)
-    params = {}
-
-    params.update({
-        "rnn_W_hh": orthogonal((n_hidden_rnn, n_hidden_rnn), rng),
-        "rnn_W_hx": glorot_uniform(n_hidden_rnn, n_features_rnn, rng),
-        "rnn_b_h": np.zeros(n_hidden_rnn),
-        "rnn_W_zh": orthogonal((n_hidden_rnn, n_hidden_rnn,), rng),
-        "rnn_W_zx": glorot_uniform(n_hidden_rnn, n_features_rnn, rng),
-        "rnn_b_z": np.zeros(n_hidden_rnn),
-        "rnn_W_rh": orthogonal((n_hidden_rnn, n_hidden_rnn,), rng),
-        "rnn_W_rx": glorot_uniform(n_hidden_rnn, n_features_rnn, rng),
-        "rnn_b_r": np.zeros(n_hidden_rnn),
-        "W_clf": [glorot_uniform(n_hidden_rnn, n_hidden_rnn, rng),
-                  glorot_uniform(n_hidden_rnn, n_hidden_rnn, rng),
-                  glorot_uniform(n_hidden_rnn, 0, rng)],
-        "b_clf": [np.zeros(n_hidden_rnn),
-                  np.zeros(n_hidden_rnn),
-                  np.ones(1)]
-        })
-
-    return params
-
-
-def event_baseline_transform(params, X, n_particles_per_event=10):
-    features = []
-
-    for e in X:
-        features.append(e[:n_particles_per_event])
-
-    h_jets = np.vstack(features)
-    h_jets = h_jets.reshape(len(X), n_particles_per_event, -1)
-
-    # GRU layer
-    h = np.zeros((len(X), params["rnn_b_h"].shape[0]))
-
-    for t in range(n_particles_per_event):
-        xt = h_jets[:, n_particles_per_event - 1 - t, :]
-        zt = sigmoid(np.dot(params["rnn_W_zh"], h.T).T +
-                     np.dot(params["rnn_W_zx"], xt.T).T + params["rnn_b_z"])
-        rt = sigmoid(np.dot(params["rnn_W_rh"], h.T).T +
-                     np.dot(params["rnn_W_rx"], xt.T).T + params["rnn_b_r"])
-        ht = relu(np.dot(params["rnn_W_hh"], np.multiply(rt, h).T).T +
-                  np.dot(params["rnn_W_hx"], xt.T).T + params["rnn_b_h"])
-        h = np.multiply(1. - zt, h) + np.multiply(zt, ht)
-
-    return h
-
-
-def event_baseline_predict(params, X, n_particles_per_event=10,regression = False):
-    h = event_baseline_transform(params, X,
-                                 n_particles_per_event=n_particles_per_event)
-    if regression :
-        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-        h = relu(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-    else :
-        h = relu(np.dot(params["W_clf"][0], h.T).T + params["b_clf"][0])
-        h = relu(np.dot(params["W_clf"][1], h.T).T + params["b_clf"][1])
-        h = sigmoid(np.dot(params["W_clf"][2], h.T).T + params["b_clf"][2])
-    return h.ravel()
-
-
 # Training
 
 def log_loss(y, y_pred):
@@ -480,7 +336,7 @@ def square_error(y, y_pred):
 
 
 def sgd(grad, init_params,
-        callback=None, num_iters=200, step_size=0.1, mass=0.9):
+        callback = None, num_iters = 200, step_size = 0.1, mass = 0.9):
     flattened_grad, unflatten, x = flatten_func(grad, init_params)
 
     velocity = np.zeros(len(x))
@@ -497,8 +353,8 @@ def sgd(grad, init_params,
     return unflatten(x)
 
 
-def rmsprop(grad, init_params, callback=None, num_iters=100,
-            step_size=0.1, gamma=0.9, eps=10**-8):
+def rmsprop(grad, init_params, callback = None, num_iters = 100,
+            step_size = 0.1, gamma = 0.9, eps = 10**-8):
     flattened_grad, unflatten, x = flatten_func(grad, init_params)
 
     avg_sq_grad = np.ones(len(x))
@@ -515,8 +371,8 @@ def rmsprop(grad, init_params, callback=None, num_iters=100,
     return unflatten(x)
 
 
-def adam(grad, init_params, callback=None, num_iters=100,
-         step_size=0.001, b1=0.9, b2=0.999, eps=10**-8):
+def adam(grad, init_params, callback = None, num_iters = 100,
+         step_size = 0.001, b1 = 0.9, b2 = 0.999, eps = 10**-8):
     flattened_grad, unflatten, x = flatten_func(grad, init_params)
 
     m = np.zeros(len(x))
