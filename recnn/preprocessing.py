@@ -39,7 +39,7 @@ def cast(event):
         a[i, 4] = p[4]
     return(a)
 
-def ff(e,cluster=None,regression=False,R=1.0):
+def create_jet_dictionary(e,cluster=None,regression=False,R=1.0):
     """
     create the Jet dictionary stucture from fastjet
     """

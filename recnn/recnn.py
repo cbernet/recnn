@@ -186,7 +186,6 @@ def grnn_transform_simple(params, jets):
     for i, nodes in enumerate(levels[::-1]):
         j = n_levels - 1 - i
         inner = nodes[:n_inners[j]]
-        outer = nodes[n_inners[j]:]
 
         u_k = relu(np.dot(params["W_u"], contents[j].T).T + params["b_u"])
 
@@ -255,7 +254,7 @@ def grnn_transform_gated(params, jets, return_states=False):
     for i, nodes in enumerate(levels[::-1]):
         j = n_levels - 1 - i
         inner = nodes[:n_inners[j]]
-        outer = nodes[n_inners[j]:]
+
 
         u_k = relu(np.dot(params["W_u"], contents[j].T).T + params["b_u"])
 
