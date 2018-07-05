@@ -19,31 +19,29 @@ from recnn.recnn import grnn_predict_gated
 from recnn.preprocessing import apply_tf_transform
 from recnn.preprocessing import create_tf_transform
 
-logging.basicConfig(level=logging.INFO,
-                    format="[%(asctime)s %(levelname)s] %(message)s")
+logging.basicConfig(level = logging.INFO,
+                    format = "[%(asctime)s %(levelname)s] %(message)s")
 
 
 def train(filename_train,
           filename_model,
-          regression=False,
-          n_events_train=-1,
-          simple=False,
-          n_features=12,
-          n_hidden=40,
-          n_epochs=5,
-          batch_size=64,
-          step_size=0.0005,
-          decay=0.9,
-          random_state=42,
-          verbose=False,
-          statlimit=-1):
+          regression = False,
+          simple = False,
+          n_features = 12,
+          n_hidden = 40,
+          n_epochs = 5,
+          batch_size = 64,
+          step_size = 0.0005,
+          decay = 0.9,
+          random_state = 42,
+          verbose = False,
+          statlimit = -1):
     # Initialization
     gated = not simple
     if verbose:
         logging.info("Calling with...")
         logging.info("\tfilename_train = %s" % filename_train)
         logging.info("\tfilename_model = %s" % filename_model)
-        logging.info("\tn_events_train = %d" % n_events_train)
         logging.info("\tgated = %s" % gated)
         logging.info("\tn_features = %d" % n_features)
         logging.info("\tn_hidden = %d" % n_hidden)
@@ -66,15 +64,10 @@ def train(filename_train,
     X = np.array(X).astype(dict)
     y = np.array(y).astype(float)
     flush = np.random.permutation(len(X))
-    X,y=X[flush][:statlimit],y[flush][:statlimit]
+    X,y = X[flush][:statlimit],y[flush][:statlimit]
     if regression:
-	    y_pred_0 = [x["pt"] for x in X]
-	    zerovalue=square_error(y, y_pred_0).mean()        
+	    zerovalue = square_error(y, [x["pt"] for x in X]).mean()        
 
-    if n_events_train > 0:
-        indices = check_random_state(123).permutation(len(X))[:n_events_train]
-        X = X[indices]
-        y = y[indices]
     X = list(X)
     if verbose:
         logging.info("\tfilename = %s" % filename_train)
@@ -92,9 +85,10 @@ def train(filename_train,
     logging.info("Splitting into train and validation...")
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y,
-                                                          test_size=0.1,
-                                                          random_state=rng)
-
+                                                          test_size = 0.1,
+                                                          random_state = rng)
+    del X
+    del y
     # Training
     if verbose:
         logging.info("Training...")
@@ -106,13 +100,13 @@ def train(filename_train,
         predict = grnn_predict_simple
         init = grnn_init_simple
 
-    trained_params = init(n_features, n_hidden, random_state=rng)
+    trained_params = init(n_features, n_hidden, random_state = rng)
     n_batches = int(np.ceil(len(X_train) / batch_size))
     best_score = [np.inf]  # yuck, but works
     best_params = [trained_params]
 
     def loss(X, y, params):
-        y_pred = predict(params, X, regression=regression)
+        y_pred = predict(params, X, regression = regression)
         if regression:
             l = square_error(y, y_pred).mean()
         else :
@@ -139,17 +133,17 @@ def train(filename_train,
             if verbose:
                 if regression :
                     logging.info(
-                        "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
-                        "\tbest_loss(valid)=%.4f" % (
+                        "%5d\t~loss(train) = %.4f\tloss(valid) = %.4f"
+                        "\tbest_loss(valid) = %.4f" % (
                             iteration,
                             loss(X_train[:5000], y_train[:5000], params),
                             loss(X_valid, y_valid, params),
                             best_score[0]))
                 else:
-                    roc_auc = roc_auc_score(y_valid, predict(params, X_valid,regression=regression))
+                    roc_auc = roc_auc_score(y_valid, predict(params, X_valid,regression = regression))
                     logging.info(
-                        "%5d\t~loss(train)=%.4f\tloss(valid)=%.4f"
-                        "\troc_auc(valid)=%.4f\tbest_loss(valid)=%.4f" % (
+                        "%5d\t~loss(train) = %.4f\tloss(valid) = %.4f"
+                        "\troc_auc(valid) = %.4f\tbest_loss(valid) = %.4f" % (
                             iteration,
                             loss(X_train[:5000], y_train[:5000], params),
                             loss(X_valid, y_valid, params),
@@ -165,42 +159,40 @@ def train(filename_train,
 
         trained_params = adam(ag.grad(objective),
                               trained_params,
-                              step_size=step_size,
-                              num_iters=1 * n_batches,
-                              callback=callback)
+                              step_size = step_size,
+                              num_iters = 1 * n_batches,
+                              callback = callback)
         step_size = step_size * decay
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='lol')
-    parser.add_argument("filename_train", help="",type=str)
-    parser.add_argument("filename_model", help="", type=str)
-    parser.add_argument("--regression", help="", action="store_true")
-    parser.add_argument("--n_events_train", help="", type=int, default=-1)
-    parser.add_argument("--n_features", help="", type=int, default=12)
-    parser.add_argument("--n_hidden", help="", type=int, default=40)
-    parser.add_argument("--n_epochs", help="", type=int, default=5)
-    parser.add_argument("--batch_size", help="", type=int, default=64)
-    parser.add_argument("--step_size", help="", type=float, default=0.0005)
-    parser.add_argument("--decay", help="", type=float, default=0.9)
-    parser.add_argument("--random_state", help="", type=int, default=42)
-    parser.add_argument("--statlimit", help="", type=int, default=-1)
-    parser.add_argument("--verbose", help="", action="store_true")
-    parser.add_argument("--simple", help="", action="store_true")
+    parser = argparse.ArgumentParser(description = 'lol')
+    parser.add_argument("filename_train", help = "File to use as training data.",type = str)
+    parser.add_argument("filename_model", help = "File to use as model storage, will be created if it does not exist.", type = str)
+    parser.add_argument("--regression", help = "Add this for regression use.", action = "store_true")
+    parser.add_argument("--n_features", help = "Depends on your use-case, it's the number of features the sample contains. With our data formating, it's 12.", type = int, default = 12)
+    parser.add_argument("--n_hidden", help = "Number of neurons in a layer of the final network.", type = int, default = 40)
+    parser.add_argument("--n_epochs", help = "Number of epochs of training.", type = int, default = 5)
+    parser.add_argument("--batch_size", help = "Size of your batch for gradient descent computing.", type = int, default = 64)
+    parser.add_argument("--step_size", help = "Size of you gradient descent step.", type = float, default = 0.0005)
+    parser.add_argument("--decay", help = "Decay of your step size. Each epoch will do step_size : =  decay * step_size.", type = float, default = 0.9)
+    parser.add_argument("--random_state", help = "Set a random state. Default is 42.", type = int, default = 42)
+    parser.add_argument("--statlimit", help = "Limit sample size (usefull for ram usage).", type = int, default = -1)
+    parser.add_argument("--verbose", help = "Verbose.", action = "store_true")
+    parser.add_argument("--simple", help = "Add this to use a simple network instead of a gated one.", action = "store_true")
     args = parser.parse_args()
     
-    train(filename_train=args.filename_train,
-          filename_model=args.filename_model,
-          regression=args.regression,
-          n_events_train=args.n_events_train,
-          simple=args.simple,
-          n_features=args.n_features,
-          n_hidden=args.n_hidden,
-          n_epochs=args.n_epochs,
-          batch_size=args.batch_size,
-          step_size=args.step_size,
-          decay=args.decay,
-          random_state=args.random_state,
-          verbose=args.verbose,
-          statlimit=args.statlimit)
+    train(filename_train = args.filename_train,
+          filename_model = args.filename_model,
+          regression = args.regression,
+          simple = args.simple,
+          n_features = args.n_features,
+          n_hidden = args.n_hidden,
+          n_epochs = args.n_epochs,
+          batch_size = args.batch_size,
+          step_size = args.step_size,
+          decay = args.decay,
+          random_state = args.random_state,
+          verbose = args.verbose,
+          statlimit = args.statlimit)
