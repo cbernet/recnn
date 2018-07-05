@@ -105,6 +105,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.R_clustering == 0.:
-        args.R_clustering = 0.0000001
-    
-    preprocess_for_training(args.filename,regression=args.regression,R_clustering=args.R_clustering,signal=args.signal)
+        preprocess_for_training(args.filename,regression=args.regression,R_clustering=0.00001,signal=args.signal)
+    else :
+        preprocess_for_training(args.filename,regression=args.regression,R_clustering=args.R_clustering,signal=args.signal)
