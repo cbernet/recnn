@@ -25,12 +25,12 @@ def compute_roc_curve(y, y_pred,density=1000):
     return(fpr,tpr,t)
 
 # In[]:
-def predict(X, filename, func=None):
+def predict(X, filename, func=None,regression = False):
     """make prediction function"""
     fd = open(filename, "rb")
     params = pickle.load(fd)
     fd.close()
-    y_pred = func(params, X)
+    y_pred = func(params, X,regression = regression)
     return(y_pred)
 
 def build_roc(X, y, filename, func=None):
