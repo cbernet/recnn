@@ -20,11 +20,6 @@ def tftransform(jet,tf):
     jet["content"] = tf.transform(jet["content"])
     return(jet)
 
-def prepare_test_data(tf, X, y):
-    """loads testing data and applying it a tf transform"""
-    # Make test data
-    X=multithreadmap(tftransform,X,tf=tf)
-    return(X, y)
 
 def extract_component(e,component):
     return(e[component])
