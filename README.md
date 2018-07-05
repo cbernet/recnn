@@ -11,8 +11,6 @@
            - root_numpy
            - functools
            - autograd
-           - click
-           - copy
            - logging
            - pickle
            - sklearn
@@ -24,18 +22,22 @@
 
 (mirror to be released)
 
-### Usage for jet classification
-### Rebuilding the data
+### How to use it
+#### Rebuilding the data
 
 input file : npy format containing an array of shape :
 ```
 array =[jet1,...,jetN]
 jet = [particle1,...,particleM]
-particle = [E,px,py,pz]
+particle = [E,px,py,pz,standard_id]
 ```
-The output files are produced using the FullPreprocessing NotreBook, you need to adapt the path.
 
-You need to specify which file is background and which is signal, using the lists in the 6th cell (signallist and backgroundlist).
+To preprocess your files for the RECNN, you need to use the Python file `preprocess_for_training.py`. It needs to be run with **iPython**. You can either import the needed function with `from preprocess_for_training import preprocess_for_training` or use it directly. Syntax :
+```
+ipython preprocess_for_training.py /path/to/myfile.npy -- Other_options
+```
+
+
 
 ### Training
 ```

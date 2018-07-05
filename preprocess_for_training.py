@@ -8,7 +8,7 @@ import numpy as np
 sys.path.append("..")
 
 ### Importing preprocessing functions ###
-from recnn.preprocessing import ff
+from recnn.preprocessing import create_jet_dictionary
 from recnn.preprocessing import randomize
 from recnn.preprocessing import preprocess
 from recnn.preprocessing import multithreadmap
@@ -25,7 +25,7 @@ get_ipython().run_cell_magic(u'cython', u'-f -+ -I/usr/local/include --link-args
 # In[]:
 def preprocess_for_training(filename,regression=False,R_clustering=0.3,signal=True):
     events = np.array(np.load(filename))
-    signal = multithreadmap(ff,events,cluster=cluster,regression=True,R=1000.)
+    signal = multithreadmap(create_jet_dictionary,events,cluster=cluster,regression=True,R=1000.)
     
     X = np.array(signal)
     if regression :
