@@ -3,7 +3,9 @@
 
 import numpy as np
 import pickle
-
+from recnn.recnn import grnn_predict_gated
+from recnn.preprocessing import apply_tf_transform
+from recnn.preprocessing import create_tf_transform
 
 def compute_roc_curve(y, y_pred,density=1000):
     """return the roc curve"""
@@ -25,13 +27,19 @@ def compute_roc_curve(y, y_pred,density=1000):
     return(fpr,tpr,t)
 
 # In[]:
-def predict(X, filename, func=None,regression = False):
+def predict(X, filename, func=grnn_predict_gated,regression = False):
     """make prediction function"""
     fd = open(filename, "rb")
     params = pickle.load(fd)
     fd.close()
     y_pred = func(params, X,regression = regression)
     return(y_pred)
+
+"/data/conda/recnn/data/modelsregression/Background_JEC_train_ID_preprocessed_R=1e-05_anti-kt.pickle"
+
+def transform_for_prediction(Xtrain,Xtest):
+    tf = create_tf_transform(Xtest)
+    return(apply_tf_transform(Xtrain,tf))
 
 def build_roc(X, y, filename, func=None):
     """evaluates a model and build its roc curve"""

@@ -63,10 +63,10 @@ def train(filename_train,
         fd.close()
     else:
         X, y = np.load(filename_train)
-    X = np.array(X).astype(dict)[:statlimit]
-    y = np.array(y).astype(float)[:statlimit]
+    X = np.array(X).astype(dict)
+    y = np.array(y).astype(float)
     flush = np.random.permutation(len(X))
-    X,y=X[flush],y[flush]
+    X,y=X[flush][:statlimit],y[flush][:statlimit]
     if regression:
 	    y_pred_0 = [x["pt"] for x in X]
 	    zerovalue=square_error(y, y_pred_0).mean()        
