@@ -27,7 +27,7 @@ def train(filename_train,
           filename_model,
           regression = False,
           simple = False,
-          n_features = 12,
+          n_features = 14,
           n_hidden = 40,
           n_epochs = 5,
           batch_size = 64,
@@ -65,6 +65,16 @@ def train(filename_train,
     y = np.array(y).astype(float)
     flush = np.random.permutation(len(X))
     X,y = X[flush][:statlimit],y[flush][:statlimit]
+    i=0
+    
+    ### delete single particles ###
+    while i < len(X):
+        if len(X[i]["content"])==1:
+            X=np.delete(X,i)
+            y=np.delete(y,i)
+        else :
+            i+=1
+    
     if regression:
 	    zerovalue = square_error(y, [x["pt"] for x in X]).mean()        
 
@@ -171,11 +181,11 @@ if __name__ == "__main__":
     parser.add_argument("filename_train", help = "File to use as training data.",type = str)
     parser.add_argument("filename_model", help = "File to use as model storage, will be created if it does not exist.", type = str)
     parser.add_argument("--regression", help = "Add this for regression use.", action = "store_true")
-    parser.add_argument("--n_features", help = "Depends on your use-case, it's the number of features the sample contains. With our data formating, it's 12.", type = int, default = 12)
+    parser.add_argument("--n_features", help = "Depends on your use-case, it's the number of features the sample contains. With our data formating, it's 14.", type = int, default = 14)
     parser.add_argument("--n_hidden", help = "Number of neurons in a layer of the final network.", type = int, default = 40)
     parser.add_argument("--n_epochs", help = "Number of epochs of training.", type = int, default = 5)
     parser.add_argument("--batch_size", help = "Size of your batch for gradient descent computing.", type = int, default = 64)
-    parser.add_argument("--step_size", help = "Size of you gradient descent step.", type = float, default = 0.0005)
+    parser.add_argument("--step_size", help = "Size of you gradient descent step.", type = float, default = 0.001)
     parser.add_argument("--decay", help = "Decay of your step size. Each epoch will do step_size : =  decay * step_size.", type = float, default = 0.9)
     parser.add_argument("--random_state", help = "Set a random state. Default is 42.", type = int, default = 42)
     parser.add_argument("--statlimit", help = "Limit sample size (usefull for ram usage).", type = int, default = -1)

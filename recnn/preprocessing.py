@@ -101,8 +101,8 @@ def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
 
     ### run kt (R=0.3) on the constituents c of j, resulting in subjets sj1, sj2, ..., sjN ###
     subjets = cluster(constituents, R=R_clustering, jet_algorithm=0)
-
-
+    oldeta=jet["eta"]
+    oldpt=jet['pt']
     ### Rot phi ###
     # phi = sj1.phi()
     # for all c, do c.rotate_z(-phi)
@@ -188,6 +188,8 @@ def preprocess(jet, cluster, output="kt", regression=False,R_clustering=0.3):
     jet["mass"]    = v.m()
     jet["pt"]      = v.pt()
     jet["root_id"] = 0
+    jet['oldeta']  = oldeta
+    jet['oldpt']   = oldpt
     if regression:
         jet["genpt"]   = genpt
     return(jet)
@@ -279,7 +281,7 @@ def extract(jet, pflow=False):
     s = jet["content"].shape
 
 #    if not pflow:
-    content = np.zeros((s[0], 7+5))
+    content = np.zeros((s[0], 7+5+2))
 #    else:
 #        # pflow value will be one-hot encoded
 #        content = np.zeros((s[0], 7+4))
@@ -303,7 +305,9 @@ def extract(jet, pflow=False):
                          jet["content"][jet["root_id"], 3])
         content[i, 5] = pt if np.isfinite(pt) else 0.0
         content[i, 6] = theta if np.isfinite(theta) else 0.0
-        content[i,7:] = jet["content"][i, -5:]/pt
+        content[i, 7] = jet["oldeta"]
+        content[i, 8] = jet["oldpt"]
+        content[i,9:] = jet["content"][i, -5:]
 #        if pflow:
 #            if jet["content"][i, 4] >= 0:
 #                content[i, 7+int(jet["content"][i, 4])] = 1.0
