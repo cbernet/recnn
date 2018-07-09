@@ -56,7 +56,7 @@ def select_particle_features(jet, addID=False):
                 return(jet[:,[3,0,1,2]])
 
 
-def etatrimtree(tree, isSignal=False, JEC=False):
+def etatrimtree(tree, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=100.):
         newtree = tree.CloneTree(0)
         if JEC:
             testtree = tree.CloneTree(0)
@@ -72,23 +72,23 @@ def etatrimtree(tree, isSignal=False, JEC=False):
                     print 'entry', j, '/', nentries
                 vect = TLorentzVector()
                 vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
-                if abs(vect.Eta())>2.3 or vect.Pt()<20.:
+                if abs(vect.Eta())>etacut or vect.Pt()<ptmin:
                         continue
                 is_Signal = (event.dRs[0] < 0.3 and event.dRs[0]!=0.)
                 if isSignal:
                         if not is_Signal:
                                 continue
                         vect.SetPxPyPzE(event.GenTau[0],event.GenTau[1],event.GenTau[2],event.GenTau[3])
-                        if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
+                        if abs(vect.Eta())>etacut or vect.Pt()<ptmin or vect.Pt()>ptmax:
                                 continue
                         vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                        if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
+                        if abs(vect.Eta())>etacut or vect.Pt()<ptmin or vect.Pt()>ptmax:
                                 continue
                 else:
                         if is_Signal:
                                 continue
                         vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                        if abs(vect.Eta())>2.3 or vect.Pt()<20 or vect.Pt()>100:
+                        if abs(vect.Eta())>etacut or vect.Pt()<ptmin or vect.Pt()>ptmax:
                                 continue
                 if isSignal and not JEC:
                     vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
@@ -135,9 +135,9 @@ def cleanarray(jets_array, addID=False):
     return jets_array
     
         
-def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False):
+def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=100.):
         #load data
-        tree, testtree = etatrimtree(tree, isSignal=isSignal, JEC=JEC)
+        tree, testtree = etatrimtree(tree, isSignal=isSignal, JEC=JEC, etacut=etacut, ptmin=ptmin, ptmax=ptmax)
         if JEC:
             jets_array = tree2array(tree,'ptcs')
             genpt_array = tree2array(tree,'genpt')
@@ -167,6 +167,9 @@ if __name__ == '__main__':
         parser.add_argument("--addID", help="whether or not to add the pdgID in the output", action="store_true")
         parser.add_argument("--JEC", help="to make the files needed for JEC regression", action="store_true")
         parser.add_argument("--tag", help="what tag to add to name of output files", type=str, default='')
+        parser.add_argument("--etacut", help="what eta cut to require", type=float, default=2.3)
+        parser.add_argument("--ptmin", help="what ptmin cut to require", type=float, default=20.)
+        parser.add_argument("--ptmax", help="what ptmax cut to require", type=float, default=100.)
         args = parser.parse_args()
         if args.tag != '':
             args.tag = '_'+args.tag
