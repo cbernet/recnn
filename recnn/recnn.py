@@ -337,7 +337,7 @@ def log_loss(y, y_pred):
 
 
 def square_error(y, y_pred):
-    return( (y-y_pred) ** 2)
+    return((y-y_pred)**2)
 
 
 def sgd(grad, init_params,
