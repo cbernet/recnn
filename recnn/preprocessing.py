@@ -253,7 +253,7 @@ def rewrite_content(jet):
     content = np.zeros((len(jet["content"]),4+5))
     content[:,:4] = jet["content"][:,:-1]
     ids = np.abs(jet['content'][:,-1])
-    content[:,4:] = ((content[:,3]/jet["energy"]) * np.array([np.isclose(ids,211.),np.isclose(ids,130.),np.isclose(ids,11.),np.isclose(ids,13.),np.isclose(ids,22.)],dtype=float)).T
+    content[:,4:] = np.array([np.isclose(ids,211.),np.isclose(ids,130.),np.isclose(ids,11.),np.isclose(ids,13.),np.isclose(ids,22.)],dtype=float).T
     tree = jet["tree"]
 
     def _rec(i):
@@ -263,6 +263,7 @@ def rewrite_content(jet):
             _rec(tree[i, 0])
             _rec(tree[i, 1])
             c = content[tree[i, 0]] + content[tree[i, 1]]
+            c[4:]=((content[tree[i, 0],3])*content[tree[i, 0],4:]+(content[tree[i, 1],3])*content[tree[i, 1],4:])/(content[tree[i, 0],3]*content[tree[i, 1],3])
             content[i] = c
 
     _rec(jet["root_id"])

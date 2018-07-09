@@ -59,7 +59,7 @@ X=transform_for_prediction(Xtrain,Xtest)
 #xptgen=[x['genpt'] for x in X]
 xptgen=ytest
 xptraw=[x['pt'] for x in X]
-y = predict(X, '/data/conda/recnn/data/modelsregression/Background_JEC_train_ID_preprocessed_R=0.3_anti-kt.pickle', func=grnn_predict_gated,regression = True)
+y = predict(X, '/data/conda/recnn/data/modelsregression/Background_JEC_train_ID_preprocessed_R=0.3_anti-kt_MorePreciseStat.pickle', func=grnn_predict_gated,regression = True)
 import matplotlib.pyplot as plt
 #indices = [i for i in range(len(X)) if -0.2<X[i]["eta"]<0.2]
 # In[]:
@@ -85,7 +85,7 @@ sigma=np.std(funct)
 ###
 
 funct = np.array(y)/np.array(xptgen)
-histpred,binspred = np.histogram(funct,bins=1000,normed=True)
+histpred,binspred = np.histogram(funct,bins=100,normed=True)
 width = (binspred[1] - binspred[0])
 center = (binspred[:-1] + binspred[1:]) / 2
 
@@ -93,7 +93,7 @@ plt.xlim([0,3])
 mean =np.mean(funct)
 sigma=np.std(funct)
 
-plt.bar(center, histpred, align='center', width=width,label="ptpred/ptgen, mean ={:.4f}, std = {:.4f}".format(mean,sigma),alpha=0.7,color='red')
+plt.bar(center, histpred, align='center', width=width,label="ptpred/ptgen, mean ={:.4f}, std = {:.4f}".format(mean,sigma),alpha=0.5,color='red')
 plt.grid(True)
 plt.ylabel('density')
 plt.xlabel('pt/ptgen')
@@ -103,22 +103,24 @@ plt.xlabel('pt/ptgen')
 #x0=np.linspace(0,3,10000)
 #plt.plot(x0,f(x0))
 
-fig.savefig("figure_histogram_end.png",dpi=600)
-
-
 plt.legend()
+
+
+fig.savefig("figure_histogram_end_EtaReducedStat.png",dpi=600)
+
+
 
 # In[]:
 fig=plt.figure()
 fig.set_size_inches((8,8))
-funct = np.array(xptgen)
+funct = np.array(xptraw)
 histraw,binsraw = np.histogram(funct,bins=1000,normed=True)
 width = (binsraw[1] - binsraw[0])
 center = (binsraw[:-1] + binsraw[1:]) / 2
 plt.grid()
 mean =np.mean(funct)
 sigma=np.std(funct)
-plt.bar(center, histraw, align='center', width=width,label="ptgen, mean ={:.4f}, std = {:.4f}".format(mean,sigma),alpha=0.5,color='green')
+plt.bar(center, histraw, align='center', width=width,label="ptraw, mean ={:.4f}, std = {:.4f}".format(mean,sigma),alpha=0.5,color='green')
 
 mean =np.mean(funct)
 sigma=np.std(funct)
@@ -153,7 +155,7 @@ plt.legend()
 
 
 
-fig.savefig("figure_histogram_distribution.png",dpi=600)
+fig.savefig("figure_histogram_distribution_EtaReducedStat.png",dpi=600)
 #histpred= numpy.histogram(y/xptgen,bins=100,normed=True)
 
 #plt.scatter(xpt,y/ytest,s=0.1);plt.grid();plt.show()
