@@ -129,7 +129,7 @@ def train(filename_train,
         idx = slice(start, start+batch_size)
         return loss(X_train[idx], y_train[idx], params)
 
-    def callback(params, iteration, gradient):
+    def callback(params, iteration, gradient,regression=False):
         if iteration % 100 == 0:
             the_loss = loss(X_valid, y_valid, params)
             if the_loss < best_score[0]:
