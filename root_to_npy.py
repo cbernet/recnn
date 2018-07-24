@@ -58,11 +58,35 @@ def select_particle_features(jet, addID=False):
 
 def etatrimtree(tree, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=100.):
         newtree = tree.CloneTree(0)
+        testtree = tree.CloneTree(0)
         if JEC:
-            testtree = tree.CloneTree(0)
             genpt = np.zeros(1)
             testtree.Branch('genpt', genpt, 'genpt/D')
             newtree.Branch('genpt', genpt, 'genpt/D')
+            geneta = np.zeros(1)
+            testtree.Branch('geneta', geneta, 'geneta/D')
+            newtree.Branch('geneta', geneta, 'geneta/D')
+            genphi = np.zeros(1)
+            testtree.Branch('genphi', genphi, 'genphi/D')
+            newtree.Branch('genphi', genphi, 'genphi/D')
+            rawpt = np.zeros(1)
+            testtree.Branch('rawpt', rawpt, 'rawpt/D')
+            newtree.Branch('rawpt', rawpt, 'rawpt/D')
+            raweta = np.zeros(1)
+            testtree.Branch('raweta', raweta, 'raweta/D')
+            newtree.Branch('raweta', raweta, 'raweta/D')
+            rawphi = np.zeros(1)
+            testtree.Branch('rawphi', rawphi, 'rawphi/D')
+            newtree.Branch('rawphi', rawphi, 'rawphi/D')
+            recopt = np.zeros(1)
+            testtree.Branch('recopt', recopt, 'recopt/D')
+            newtree.Branch('recopt', recopt, 'recopt/D')
+            recoeta = np.zeros(1)
+            testtree.Branch('recoeta', recoeta, 'recoeta/D')
+            newtree.Branch('recoeta', recoeta, 'recoeta/D')
+            recophi = np.zeros(1)
+            testtree.Branch('recophi', recophi, 'recophi/D')
+            newtree.Branch('recophi', recophi, 'recophi/D')
         i=0
         j=0
         nentries = tree.GetEntries()
@@ -70,9 +94,12 @@ def etatrimtree(tree, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=10
                 j+=1
                 if j%10000==0:
                     print 'entry', j, '/', nentries
+                if JEC:
+                    if event.dRs[4] > 0.1:
+                        continue
                 vect = TLorentzVector()
                 vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
-                if abs(vect.Eta())>etacut or vect.Pt()<ptmin:
+                if abs(vect.Eta())>etacut:
                         continue
                 is_Signal = (event.dRs[0] < 0.3 and event.dRs[0]!=0.)
                 if isSignal:
@@ -105,22 +132,26 @@ def etatrimtree(tree, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=10
                 if JEC:
                     vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
                     genpt[0] = vect.Pt()
-                    if i%2==0:
-                        testtree.Fill()
-                    else:
-                        newtree.Fill()
+                    geneta[0] = vect.Eta()
+                    genphi[0] = vect.Phi()
+                    vect.SetPxPyPzE(event.RawJet[0],event.RawJet[1],event.RawJet[2],event.RawJet[3])
+                    rawpt[0] = vect.Pt()
+                    raweta[0] = vect.Eta()
+                    rawphi[0] = vect.Phi()
+                    vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
+                    recopt[0] = vect.Pt()
+                    recoeta[0] = vect.Eta()
+                    recophi[0] = vect.Phi()
+                if i%2==0:
+                    testtree.Fill()
                 else:
                     newtree.Fill()
                 i+=1
-        if JEC:
-            newtree.SetName('traintree')
-            testtree.SetName('testtree')
-            newtree.Write()
-            testtree.Write()
-            return newtree, testtree
-        else:
-            tree.Write()
-            return newtree, None
+        newtree.SetName('traintree')
+        testtree.SetName('testtree')
+        newtree.Write()
+        testtree.Write()
+        return newtree, testtree
         
 def cleanarray(jets_array, addID=False):
     indexes = multithreadmap(find_first_non_particle, jets_array)
@@ -187,20 +218,26 @@ if __name__ == '__main__':
                     signals, testsignals = converttorecnnfiles(stree,
                                                                addID=args.addID,
                                                                isSignal=True,
-                                                               JEC=args.JEC)
+                                                               JEC=args.JEC,
+                                                               etacut=args.etacut,
+                                                               ptmin=args.ptmin,
+                                                               ptmax=args.ptmax)
                     outROOTfiles.Write()
                     outROOTfiles.Close()
                     np.save('data/{}{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_train', idtag, args.tag), signals)
                     np.save('data/{}{}{}{}'.format('Signal', '_JEC' if args.JEC else '','_test', idtag, args.tag), testsignals)
                     
                 #Background files
-                binputfile = TFile('/data/gtouquet/samples_root/RawBackground.root')
+                binputfile = TFile('/data/gtouquet/samples_root/RawBackground_17july.root')
                 btree = binputfile.Get('tree')
-                outROOTfileb = TFile('/data/gtouquet/samples_root/Test_Train_splitted_{}.root'.format('Background'),'recreate')
+                outROOTfileb = TFile('/data/gtouquet/samples_root/Test_Train_splitted_{}{}.root'.format('Background','_JEC' if args.JEC else ''),'recreate')
                 backgrounds, testbackgrounds = converttorecnnfiles(btree,
                                                                    addID=args.addID,
                                                                    isSignal=False,
-                                                                   JEC=args.JEC)
+                                                                   JEC=args.JEC,
+                                                                   etacut=args.etacut,
+                                                                   ptmin=args.ptmin,
+                                                                   ptmax=args.ptmax)
                 outROOTfileb.Write()
                 outROOTfileb.Close()
                 np.save('data/{}{}{}{}'.format('Background', '_JEC' if args.JEC else '','_train', idtag,'_'+args.tag), backgrounds)
@@ -213,4 +250,7 @@ if __name__ == '__main__':
                 converttorecnnfiles(tree,
                                     addID=args.addID,
                                     isSignal=args.isSignal,
-                                    JEC=args.JEC)
+                                    JEC=args.JEC,
+                                    etacut=args.etacut,
+                                    ptmin=args.ptmin,
+                                    ptmax=args.ptmax)
