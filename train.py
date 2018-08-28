@@ -73,10 +73,7 @@ def train(filename_train,
             X=np.delete(X,i)
             y=np.delete(y,i)
         else :
-            i+=1
-    
-    if regression:
-	    zerovalue = square_error(y, [x["pt"] for x in X]).mean()        
+            i+=1      
 
     X = list(X)
     if verbose:
@@ -114,13 +111,11 @@ def train(filename_train,
     n_batches = int(np.ceil(len(X_train) / batch_size))
     best_score = [np.inf]  # yuck, but works
     best_params = [trained_params]
+    n_iteration = np.zeros(1)
 
     def loss(X, y, params):
         y_pred = predict(params, X, regression = regression)
-        if regression:
-            l = square_error(y, y_pred).mean()
-        else :
-            l = log_loss(y, y_pred).mean()
+        l = square_error(y, y_pred).mean()#log_loss(y, y_pred).mean()
         return l
 
     def objective(params, iteration):
@@ -129,15 +124,15 @@ def train(filename_train,
         idx = slice(start, start+batch_size)
         return loss(X_train[idx], y_train[idx], params)
 
-    def callback(params, iteration, gradient,regression=False):
-        if iteration % 100 == 0:
+    def callback(params, iteration, gradient,regression=regression):
+        if iteration % 200 == 0:
             the_loss = loss(X_valid, y_valid, params)
             if the_loss < best_score[0]:
                 best_score[0] = the_loss
                 best_params[0] = copy.deepcopy(params)
-
-                fd = open(filename_model, "wb")
+                fd = open(filename_model.format(int(n_iteration[0])), "wb")
                 pickle.dump(best_params[0], fd)
+		n_iteration[0]+=1
                 fd.close()
 
             if verbose:
@@ -185,16 +180,18 @@ if __name__ == "__main__":
     parser.add_argument("--n_hidden", help = "Number of neurons in a layer of the final network.", type = int, default = 40)
     parser.add_argument("--n_epochs", help = "Number of epochs of training.", type = int, default = 5)
     parser.add_argument("--batch_size", help = "Size of your batch for gradient descent computing.", type = int, default = 64)
-    parser.add_argument("--step_size", help = "Size of you gradient descent step.", type = float, default = 0.001)
+    parser.add_argument("--step_size", help = "Size of you gradient descent step.", type = float, default = 0.1)
     parser.add_argument("--decay", help = "Decay of your step size. Each epoch will do step_size : =  decay * step_size.", type = float, default = 0.9)
     parser.add_argument("--random_state", help = "Set a random state. Default is 42.", type = int, default = 42)
     parser.add_argument("--statlimit", help = "Limit sample size (usefull for ram usage).", type = int, default = -1)
     parser.add_argument("--verbose", help = "Verbose.", action = "store_true")
     parser.add_argument("--simple", help = "Add this to use a simple network instead of a gated one.", action = "store_true")
     args = parser.parse_args()
+
+    filename_model = args.filename_model.replace('iteration.','iteration{}.')
     
     train(filename_train = args.filename_train,
-          filename_model = args.filename_model,
+          filename_model = filename_model,
           regression = args.regression,
           simple = args.simple,
           n_features = args.n_features,

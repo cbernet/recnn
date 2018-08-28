@@ -98,7 +98,10 @@ if __name__ == '__main__':
     tree = f.Get('tested_tree')
     plots(tree, var='rawpt')
     plots(tree, var='recopt')
-    plots(tree, var='pt_rec')
-    plots_eta(tree, var='rawpt')
-    plots_eta(tree, var='recopt')
-    plots_eta(tree, var='pt_rec')
+    for i in [54]:#range(40):
+        plots(tree, var='pt_rec{}'.format(i))
+    
+    # plots(tree, var='pt_rec')
+    # plots_eta(tree, var='rawpt')
+    # plots_eta(tree, var='recopt')
+    # plots_eta(tree, var='pt_rec')

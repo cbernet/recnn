@@ -174,8 +174,12 @@ def grnn_init_simple(n_features, n_hidden, random_state = None):
             "b_h": np.zeros(n_hidden),
             "W_clf": [glorot_uniform(n_hidden, n_hidden, rng),
                       glorot_uniform(n_hidden, n_hidden, rng),
+                      glorot_uniform(n_hidden, n_hidden, rng),
+                      glorot_uniform(n_hidden, n_hidden, rng),
                       glorot_uniform(n_hidden, 0, rng)],
             "b_clf": [np.zeros(n_hidden+1),
+                      np.zeros(n_hidden),
+                      np.zeros(n_hidden),
                       np.zeros(n_hidden),
                       np.ones(1)]}
 
