@@ -43,7 +43,7 @@ def transform_for_prediction(Xtrain,Xtest):
 def build_roc(X, y, filename, func=None):
     """evaluates a model and build its roc curve"""
     print("Loading " + filename),
-    y_pred = predict(X, filename, func=func)
+    y_pred = predict(X, filename, func=func, regression=False)
     fpr, tpr, _ = compute_roc_curve(y, y_pred,density=10000)
     roc = np.trapz(-tpr,fpr)
     print("ROC AUC = %.4f" % roc)
