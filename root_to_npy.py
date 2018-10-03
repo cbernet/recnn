@@ -16,8 +16,6 @@ from ROOT import TFile, TLorentzVector, TH1F
 from root_numpy import tree2array
 from recnn.preprocessing import multithreadmap
 
-norm_hist = TH1F('normhist','normhist',150,0.,150.)
-background_norm_hist = TH1F('backgroundnormhist','backgroundnormhist',150,0.,150.)
 
 
 #now useless
@@ -56,37 +54,36 @@ def select_particle_features(jet, addID=False):
                 return(jet[:,[3,0,1,2]])
 
 
-def etatrimtree(tree, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=100.):
+def etatrimtree(tree, isSignal=False, JEC=False, cutfunc=None, norm_hist=None, background_norm_hist=None):
         newtree = tree.CloneTree(0)
         testtree = tree.CloneTree(0)
-        if JEC:
-            genpt = np.zeros(1)
-            testtree.Branch('genpt', genpt, 'genpt/D')
-            newtree.Branch('genpt', genpt, 'genpt/D')
-            geneta = np.zeros(1)
-            testtree.Branch('geneta', geneta, 'geneta/D')
-            newtree.Branch('geneta', geneta, 'geneta/D')
-            genphi = np.zeros(1)
-            testtree.Branch('genphi', genphi, 'genphi/D')
-            newtree.Branch('genphi', genphi, 'genphi/D')
-            rawpt = np.zeros(1)
-            testtree.Branch('rawpt', rawpt, 'rawpt/D')
-            newtree.Branch('rawpt', rawpt, 'rawpt/D')
-            raweta = np.zeros(1)
-            testtree.Branch('raweta', raweta, 'raweta/D')
-            newtree.Branch('raweta', raweta, 'raweta/D')
-            rawphi = np.zeros(1)
-            testtree.Branch('rawphi', rawphi, 'rawphi/D')
-            newtree.Branch('rawphi', rawphi, 'rawphi/D')
-            recopt = np.zeros(1)
-            testtree.Branch('recopt', recopt, 'recopt/D')
-            newtree.Branch('recopt', recopt, 'recopt/D')
-            recoeta = np.zeros(1)
-            testtree.Branch('recoeta', recoeta, 'recoeta/D')
-            newtree.Branch('recoeta', recoeta, 'recoeta/D')
-            recophi = np.zeros(1)
-            testtree.Branch('recophi', recophi, 'recophi/D')
-            newtree.Branch('recophi', recophi, 'recophi/D')
+        genpt = np.zeros(1)
+        testtree.Branch('genpt', genpt, 'genpt/D')
+        newtree.Branch('genpt', genpt, 'genpt/D')
+        geneta = np.zeros(1)
+        testtree.Branch('geneta', geneta, 'geneta/D')
+        newtree.Branch('geneta', geneta, 'geneta/D')
+        genphi = np.zeros(1)
+        testtree.Branch('genphi', genphi, 'genphi/D')
+        newtree.Branch('genphi', genphi, 'genphi/D')
+        rawpt = np.zeros(1)
+        testtree.Branch('rawpt', rawpt, 'rawpt/D')
+        newtree.Branch('rawpt', rawpt, 'rawpt/D')
+        raweta = np.zeros(1)
+        testtree.Branch('raweta', raweta, 'raweta/D')
+        newtree.Branch('raweta', raweta, 'raweta/D')
+        rawphi = np.zeros(1)
+        testtree.Branch('rawphi', rawphi, 'rawphi/D')
+        newtree.Branch('rawphi', rawphi, 'rawphi/D')
+        recopt = np.zeros(1)
+        testtree.Branch('recopt', recopt, 'recopt/D')
+        newtree.Branch('recopt', recopt, 'recopt/D')
+        recoeta = np.zeros(1)
+        testtree.Branch('recoeta', recoeta, 'recoeta/D')
+        newtree.Branch('recoeta', recoeta, 'recoeta/D')
+        recophi = np.zeros(1)
+        testtree.Branch('recophi', recophi, 'recophi/D')
+        newtree.Branch('recophi', recophi, 'recophi/D')
         i=0
         j=0
         nentries = tree.GetEntries()
@@ -94,58 +91,46 @@ def etatrimtree(tree, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=10
                 j+=1
                 if j%10000==0:
                     print 'entry', j, '/', nentries
-                if JEC:
-                    if event.dRs[4] > 0.1:
-                        continue
-                vect = TLorentzVector()
-                vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
-                if abs(vect.Eta())>etacut:
+                if event.dRs[4] > 0.1:
                         continue
                 is_Signal = (event.dRs[0] < 0.3 and event.dRs[0]!=0.)
                 if isSignal:
                         if not is_Signal:
                                 continue
-                        vect.SetPxPyPzE(event.GenTau[0],event.GenTau[1],event.GenTau[2],event.GenTau[3])
-                        if abs(vect.Eta())>etacut or vect.Pt()<ptmin or vect.Pt()>ptmax:
-                                continue
-                        vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                        if abs(vect.Eta())>etacut or vect.Pt()<ptmin or vect.Pt()>ptmax:
-                                continue
                 else:
                         if is_Signal:
                                 continue
-                        vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                        if abs(vect.Eta())>etacut or vect.Pt()<ptmin or vect.Pt()>ptmax:
-                                continue
-                if isSignal and not JEC:
-                    vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                    norm_hist.Fill(vect.Pt())
-                if not isSignal and not JEC:
-                    vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                    the_bin = norm_hist.FindBin(vect.Pt())
-                    nsig = norm_hist.GetBinContent(the_bin)
-                    nback = background_norm_hist.GetBinContent(the_bin)
-                    if nback>=nsig:
-                        continue
-                    else:
-                        background_norm_hist.Fill(vect.Pt())
-                if JEC:
-                    vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
-                    genpt[0] = vect.Pt()
-                    geneta[0] = vect.Eta()
-                    genphi[0] = vect.Phi()
-                    vect.SetPxPyPzE(event.RawJet[0],event.RawJet[1],event.RawJet[2],event.RawJet[3])
-                    rawpt[0] = vect.Pt()
-                    raweta[0] = vect.Eta()
-                    rawphi[0] = vect.Phi()
-                    vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
-                    recopt[0] = vect.Pt()
-                    recoeta[0] = vect.Eta()
-                    recophi[0] = vect.Phi()
+                vect = TLorentzVector()
+                vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                genpt[0] = vect.Pt()
+                geneta[0] = vect.Eta()
+                genphi[0] = vect.Phi()
+                vect.SetPxPyPzE(event.RawJet[0],event.RawJet[1],event.RawJet[2],event.RawJet[3])
+                rawpt[0] = vect.Pt()
+                raweta[0] = vect.Eta()
+                rawphi[0] = vect.Phi()
+                vect.SetPxPyPzE(event.Jet[0],event.Jet[1],event.Jet[2],event.Jet[3])
+                recopt[0] = vect.Pt()
+                recoeta[0] = vect.Eta()
+                recophi[0] = vect.Phi()
                 if i%2==0:
-                    testtree.Fill()
+                        testtree.Fill()
                 else:
-                    newtree.Fill()
+                        if not cutfunc and not cutfunc(event):
+                                continue
+                        if isSignal and not JEC:
+                                vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                                norm_hist.Fill(vect.Pt())
+                        if not isSignal and not JEC:
+                                vect.SetPxPyPzE(event.GenJet[0],event.GenJet[1],event.GenJet[2],event.GenJet[3])
+                                the_bin = norm_hist.FindBin(vect.Pt())
+                                nsig = norm_hist.GetBinContent(the_bin)
+                                nback = background_norm_hist.GetBinContent(the_bin)
+                                if nback>=nsig:
+                                        continue
+                                else:
+                                        background_norm_hist.Fill(vect.Pt())
+                        newtree.Fill()
                 i+=1
         newtree.SetName('traintree')
         testtree.SetName('testtree')
@@ -166,9 +151,9 @@ def cleanarray(jets_array, addID=False):
     return jets_array
     
         
-def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False, etacut=2.3, ptmin=20., ptmax=100.):
+def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False, cutfunc=None, norm_hist=None, background_norm_hist=None):
         #load data
-        tree, testtree = etatrimtree(tree, isSignal=isSignal, JEC=JEC, etacut=etacut, ptmin=ptmin, ptmax=ptmax)
+        tree, testtree = etatrimtree(tree, isSignal=isSignal, JEC=JEC, cutfunc=cutfunc, norm_hist=norm_hist, background_norm_hist=background_norm_hist)
         if JEC:
             jets_array = tree2array(tree,'ptcs')
             genpt_array = tree2array(tree,'genpt')
@@ -188,6 +173,17 @@ def converttorecnnfiles(tree, addID=False, isSignal=False, JEC=False, etacut=2.3
             test_jets_array = zip(test_jets_array, test_genpt_array)
         
         return jets_array, test_jets_array
+
+def makerecnnfiles_classification(rootfile_signal, rootfile_background, traincut):
+        norm_hist = TH1F('normhist','normhist',150,0.,150.)
+        background_norm_hist = TH1F('backgroundnormhist','backgroundnormhist',150,0.,150.)
+        signal_file = TFile(rootfile_signal,'update')
+        signal_tree = signal_file.Get('tree')
+        train_array_signal, test_array_signal = converttorecnnfiles(signal_tree, addID=True, isSignal=True, JEC=False, cutfunc=traincut, norm_hist=norm_hist, background_norm_hist=background_norm_hist)
+        background_file = TFile(rootfile_background,'update')
+        background_tree = background_file.Get('tree')
+        train_array_background, test_array_background = converttorecnnfiles(background_tree, addID=True, isSignal=False, JEC=False, cutfunc=traincut, norm_hist=norm_hist, background_norm_hist=background_norm_hist)
+        return train_array_signal, test_array_signal, train_array_background, test_array_background
 
 
 if __name__ == '__main__':

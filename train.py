@@ -130,7 +130,7 @@ def train(filename_train,
             if the_loss < best_score[0]:
                 best_score[0] = the_loss
                 best_params[0] = copy.deepcopy(params)
-                fd = open(filename_model.format(int(n_iteration[0])), "wb")
+                fd = open(filename_model, "wb")
                 pickle.dump(best_params[0], fd)
 		n_iteration[0]+=1
                 fd.close()
