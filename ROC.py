@@ -58,7 +58,11 @@ def score_retrieval_std(event):
 
     
 if __name__ == '__main__':
-    workdir = '/data/gtouquet/testdir_23Sept'
+    import argparse
+    parser = argparse.ArgumentParser(description = 'cfg file for fadronic tau recnn training and testing')
+    parser.add_argument("output_path", help = "directory that was used as based direcory for training and testing.",type = str)
+    args = parser.parse_args()
+    workdir = args.output_path
     sfile = TFile(workdir+'/rawSignal.root')
     bfile = TFile(workdir+'/rawBackground.root')
     stree = sfile.Get('finaltree')
