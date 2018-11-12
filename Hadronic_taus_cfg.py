@@ -35,8 +35,8 @@ if not os.path.exists(outputdir):
 
 ####################original rootfiles
 if not os.path.exists(outputdir+'/rawSignal.root'):
-    copyfile('/data/gtouquet/samples_root/RawSignal_21Sept.root',outputdir+'/rawSignal.root')
-    copyfile('/data/gtouquet/samples_root/RawBackground_17july.root',outputdir+'/rawBackground.root')
+    copyfile('/data/conda/recnn/data/rootfiles/RawSignal_21Sept.root',outputdir+'/rawSignal.root')
+    copyfile('/data/conda/recnn/data/rootfiles/RawBackground_17july.root',outputdir+'/rawBackground.root')
     
 ####################raw numpy arrays 
 print '################converting to npy################' 
