@@ -1,107 +1,72 @@
-from ROOT import TFile, TH1F, TF1
+from ROOT import TFile, TH2F, TGraph, TLegend
 import numpy as np
 
-pts = []
-for i in range(60):
-    if i*5.>20.:
-        pts.append([i*5.,(i+1.)*5.])
+f = TFile('/data/gtouquet/testdir_23Sept/ROCs.root')
+tree = f.Get('NN_ROC')
+stdtree = f.Get('std_ROC')
 
-etas = [[0.,0.25],[0.25,0.5],[0.5,0.75],[0.75,1.],[1.,1.3]]
+basegraph = TH2F('basegraph','#tau_h ID ROC curve',10,0.,0.1,10,0.,1.)
+basegraph.SetStats(0)
+basegraph.GetXaxis().SetTitle('Jet fake rate')
+basegraph.GetXaxis().SetTitleSize(.045)
+basegraph.GetYaxis().SetTitle('#tau ID efficiency')
+basegraph.GetYaxis().SetTitleSize(.045)
 
-def plots(tree, var='rawpt'):
-    f2 = TFile('/data/gtouquet/samples_root/plots/outfile{}.root'.format(var),'recreate')
-    hists = []
-    for pt,ptmax in pts:
-        hists.append(TH1F('hist{}'.format(int(pt)),
-                          'hist{}'.format(int(pt)),
-                          200,0.,2.))
-    print 'starting turning on tree'
-    for event in tree:
-        if not hasattr(event, var):
-            print 'var not in tree'
-            return False
-        for i, pt in enumerate(pts):
-            if event.genpt > pt[0] and event.genpt < pt[1]:
-                val = getattr(event,var)
-                hists[i].Fill(val/event.genpt)
-    print 'finished turning on tree'
-    resphist = TH1F('resphist','resphist',len(pts),np.array([x[0] for x in pts]+[pts[-1][-1]]))
-    reshist = TH1F('reshist','reshist',len(pts),np.array([x[0] for x in pts]+[pts[-1][-1]]))
-    for i, hist in enumerate(hists):
-        hist.Draw()
-        rms = hist.GetRMS()
-        maximum = hist.GetMaximumBin()
-        f = TF1("gaus","gaus",maximum-(2*rms),maximum+(2*rms))
-        f.SetParameter(0,hist.GetMaximum())
-        f.SetParameter(1,hist.GetMean())
-        f.SetParameter(2,rms)
-        hist.Fit("gaus")
-        mean = f.GetParameter(1)
-        resphist.SetBinContent(i+1,mean)
-        resphist.SetBinError(i+1,f.GetParError(1))
-        if mean==0.:
-            reshist.SetBinContent(i+1,f.GetParameter(2))
-            reshist.SetBinError(i+1,f.GetParError(2))
-        else:
-            reshist.SetBinContent(i+1,f.GetParameter(2)/(1.-abs(1.-mean)))
-            reshist.SetBinError(i+1,f.GetParError(2)/(1.-abs(1.-mean)))
-    #     hist.Write()
-    # resphist.Write()
-    # reshist.Write()
-    f2.Write()
 
-def plots_eta(tree, var='rawpt'):
-    f2 = TFile('/data/gtouquet/samples_root/plots/outfile{}_eta.root'.format(var),'recreate')
-    hists = []
-    for eta,etamax in etas:
-        hists.append(TH1F('hist{}'.format(int(eta*100)),
-                          'hist{}'.format(int(eta*100)),
-                          200,0.,2.))
-    print 'starting turning on tree'
-    for event in tree:
-        if not hasattr(event, var):
-            print 'var not in tree'
-            return False
-        for i, eta in enumerate(etas):
-            if event.geneta > eta[0] and event.geneta < eta[1] and event.genpt>150. and event.genpt<200.:
-                val = getattr(event,var)
-                hists[i].Fill(val/event.genpt)
-    print 'finished turning on tree'
-    resphist = TH1F('resphist','resphist',len(etas),np.array([x[0] for x in etas]+[etas[-1][-1]]))
-    reshist = TH1F('reshist','reshist',len(etas),np.array([x[0] for x in etas]+[etas[-1][-1]]))
-    for i, hist in enumerate(hists):
-        hist.Draw()
-        rms = hist.GetRMS()
-        maximum = hist.GetMaximumBin()
-        f = TF1("gaus","gaus",maximum-(2*rms),maximum+(2*rms))
-        f.SetParameter(0,hist.GetMaximum())
-        f.SetParameter(1,hist.GetMean())
-        f.SetParameter(2,rms)
-        hist.Fit("gaus")
-        mean = f.GetParameter(1)
-        resphist.SetBinContent(i+1,mean)
-        resphist.SetBinError(i+1,f.GetParError(1))
-        if mean==0.:
-            reshist.SetBinContent(i+1,f.GetParameter(2))
-            reshist.SetBinError(i+1,f.GetParError(2))
-        else:
-            reshist.SetBinContent(i+1,f.GetParameter(2)/(1.-abs(1.-mean)))
-            reshist.SetBinError(i+1,f.GetParError(2)/(1.-abs(1.-mean)))
-    #     hist.Write()
-    # resphist.Write()
-    # reshist.Write()
-    f2.Write()
-    
+tpr = np.zeros(stdtree.GetEntries())
+fpr = np.zeros(stdtree.GetEntries())
+i = 0
+for event in stdtree:
+    tpr[i] = event.tpr
+    fpr[i] = event.fpr
+    #print tpr[i],fpr[i]
+    i+=1
 
-if __name__ == '__main__':
-    f = TFile("/data/gtouquet/samples_root/Model_R=1e-05_anti-kt.root")
-    tree = f.Get('tested_tree')
-    plots(tree, var='rawpt')
-    plots(tree, var='recopt')
-    for i in [54]:#range(40):
-        plots(tree, var='pt_rec{}'.format(i))
-    
-    # plots(tree, var='pt_rec')
-    # plots_eta(tree, var='rawpt')
-    # plots_eta(tree, var='recopt')
-    # plots_eta(tree, var='pt_rec')
+graph_std = TGraph(10000,fpr,tpr)
+graph_std.SetMarkerColor(2)
+graph_std.SetLineColor(2)
+graph_std.SetLineWidth(3)
+
+
+tpr = np.zeros(tree.GetEntries())
+fpr = np.zeros(tree.GetEntries())
+i = 0
+for event in tree:
+    tpr[i] = event.tpr
+    fpr[i] = event.fpr
+    #print tpr[i],fpr[i]
+    i+=1
+
+graph_NN = TGraph(10000,fpr,tpr)
+graph_NN.SetMarkerColor(4)
+graph_NN.SetLineColor(4)
+graph_NN.SetLineWidth(3)
+
+leg = TLegend(0.6,0.1,0.9,0.3)
+leg.AddEntry(graph_std,"Standard ID","l")
+leg.AddEntry(graph_NN,"RecNN ID","l")
+
+
+f_test = TFile('/data/gtouquet/testdir_23Sept/ROCs_test.root')
+tree_test = f_test.Get('NN_ROC_test')
+
+tpr = np.zeros(tree_test.GetEntries())
+fpr = np.zeros(tree_test.GetEntries())
+i = 0
+for event in tree_test:
+    tpr[i] = event.tpr
+    fpr[i] = event.fpr
+    #print tpr[i],fpr[i]
+    i+=1
+
+graph_toogoodtobetrue = TGraph(10000,fpr,tpr)
+graph_toogoodtobetrue.SetName('graph_toogoodtobetrue')
+graph_toogoodtobetrue.SetMarkerColor(1)
+graph_toogoodtobetrue.SetLineColor(1)
+# leg.AddEntry(graph_toogoodtobetrue,"too good to be true","l")
+
+basegraph.Draw()
+leg.Draw("same")
+graph_NN.Draw("same")
+# graph_toogoodtobetrue.Draw("same")
+graph_std.Draw("same")
