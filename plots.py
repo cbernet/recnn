@@ -46,27 +46,7 @@ leg = TLegend(0.6,0.1,0.9,0.3)
 leg.AddEntry(graph_std,"Standard ID","l")
 leg.AddEntry(graph_NN,"RecNN ID","l")
 
-
-f_test = TFile('/data/gtouquet/testdir_23Sept/ROCs_test.root')
-tree_test = f_test.Get('NN_ROC_test')
-
-tpr = np.zeros(tree_test.GetEntries())
-fpr = np.zeros(tree_test.GetEntries())
-i = 0
-for event in tree_test:
-    tpr[i] = event.tpr
-    fpr[i] = event.fpr
-    #print tpr[i],fpr[i]
-    i+=1
-
-graph_toogoodtobetrue = TGraph(10000,fpr,tpr)
-graph_toogoodtobetrue.SetName('graph_toogoodtobetrue')
-graph_toogoodtobetrue.SetMarkerColor(1)
-graph_toogoodtobetrue.SetLineColor(1)
-# leg.AddEntry(graph_toogoodtobetrue,"too good to be true","l")
-
 basegraph.Draw()
 leg.Draw("same")
 graph_NN.Draw("same")
-# graph_toogoodtobetrue.Draw("same")
 graph_std.Draw("same")
