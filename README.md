@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-git clone git@github.com:GaelTouquet/recnn.git -b refactoring
+git clone git@github.com:cbernet/recnn.git 
 cd recnn
 ln -s /data/conda/recnn/data
 ln -s /data/conda/recnn/data_gilles_louppe
