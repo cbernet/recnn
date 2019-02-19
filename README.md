@@ -24,6 +24,30 @@ cd ../recnn
 
 [Original paper](https://arxiv.org/abs/1702.00748)
 
+## Input data
+
+The signal and background samples come from the CMS simulation, and are stored into ROOT files: 
+
+```
+/data2/conda/recnn/data/rootfiles/RawSignal_21Sept.root
+/data2/conda/recnn/data/rootfiles/RawBackground_17july.root  
+```
+
+These files contain a TTree called `tree` with the following branches:
+
+* RawJet[1][6] : the PF jet before jet energy correction
+   * blah
+   * ...  
+* genptcs[200][8]
+* Jet[1][9]
+* Tau[1][6]
+* GenJet[1][7]
+* GenTau[1][7]
+* ptcs[200][8]
+* dRs[5]
+* standardID[6]
+* event[3]
+
 ## Preprocessing, Training, Testing
 
 Those three steps can be done in a single cfg file that can be used like :
