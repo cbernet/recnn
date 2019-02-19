@@ -33,6 +33,12 @@ The signal and background samples come from the CMS simulation, and are stored i
 /data2/conda/recnn/data/rootfiles/RawBackground_17july.root  
 ```
 
+All Jets in the Background rootfile are to be considered as background (not hadronic taus) whereas jets in the Signal rootfile are to be considered signal only if a gen-level Tau is found very close to the jet:
+
+```
+dRs[0] != 0. && dRs[0] < 0.3
+```
+
 Original samples :
 
 * signal :
